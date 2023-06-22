@@ -71,6 +71,6 @@ func main() {
 	r.GET("/api/licenses", api.GetAllLicense)
 	r.GET("/api/license/:shortname", api.GetLicense)
 	r.POST("/api/license", api.CreateLicense)
-	r.PATCH("/api/license/:shortname", api.UpdateLicense)
+	r.PATCH("/api/license/update/:shortname", api.UpdateLicense)
 	r.Run()
 }
