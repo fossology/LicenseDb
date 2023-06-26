@@ -107,3 +107,18 @@ type LicenseInput struct {
 	Flag            string `json:"rf_flag"`
 	Marydone        string `json:"marydone"`
 }
+
+// User struct is representation of user information.
+type User struct {
+	Userid       string `json:"userid" gorm:"primary_key"`
+	Username     string `json:"username" gorm:"unique"`
+	Userlevel    string `json:"userlevel" gorm:"unique"`
+	Userpassword string `json:"userpassword" gorm:"unique"`
+}
+
+// UserResponse struct is representation of design API response of user.
+type UserResponse struct {
+	Status int    `json:"status"`
+	Data   []User `json:"data"`
+	Meta   Meta   `json:"meta"`
+}
