@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fossology/LicenseDb/pkg/api"
+	"github.com/fossology/LicenseDb/pkg/db"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +31,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	result := api.DB.Create(&user)
+	result := db.DB.Create(&user)
 	if result.Error != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
@@ -46,7 +46,7 @@ func CreateUser(c *gin.Context) {
 	res := models.UserResponse{
 		Data:   []models.User{user},
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -56,7 +56,7 @@ func CreateUser(c *gin.Context) {
 
 func GetAllUser(c *gin.Context) {
 	var users []models.User
-	err := api.DB.Find(&users).Error
+	err := db.DB.Find(&users).Error
 	if err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
@@ -70,7 +70,7 @@ func GetAllUser(c *gin.Context) {
 	res := models.UserResponse{
 		Data:   users,
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -81,7 +81,7 @@ func GetAllUser(c *gin.Context) {
 func GetUser(c *gin.Context) {
 	var user models.User
 	id := c.Param("id")
-	err := api.DB.Where("id = ?", id).First(&user).Error
+	err := db.DB.Where("userid = ?", id).First(&user).Error
 	if err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
@@ -95,7 +95,7 @@ func GetUser(c *gin.Context) {
 	res := models.UserResponse{
 		Data:   []models.User{user},
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -124,7 +124,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		decodedAuth, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authHeader, "Basic "))
 		if err != nil {
 			er := models.LicenseError{
-				Status:    http.StatusBadRequest,
+				Status:    http.StatusUnauthorized,
 				Message:   fmt.Sprintf("Please check your credentials and try again"),
 				Error:     err.Error(),
 				Path:      c.Request.URL.Path,
@@ -146,7 +146,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		password := auth[1]
 
 		var user models.User
-		result := api.DB.Where("username = ?", username).First(&user)
+		result := db.DB.Where("username = ?", username).First(&user)
 		if result.Error != nil {
 			er := models.LicenseError{
 				Status:    http.StatusUnauthorized,

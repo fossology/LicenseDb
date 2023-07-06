@@ -9,12 +9,35 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fossology/LicenseDb/pkg/authenticate"
+	"github.com/fossology/LicenseDb/pkg/db"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+func Router() *gin.Engine {
+	// r is a default instance of gin engine
+	r := gin.Default()
+
+	// return error for invalid routes
+	r.NoRoute(HandleInvalidUrl)
+
+	// authorization not required for these routes
+	r.GET("/api/license/:shortname", GetLicense)
+	r.GET("/api/licenses", SearchInLicense)
+	r.GET("/api/users", authenticate.GetAllUser)
+	r.GET("/api/user/:id", authenticate.GetUser)
+
+	// set up authentication
+	authorized := r.Group("/")
+	authorized.Use(authenticate.AuthenticationMiddleware())
+
+	authorized.POST("/api/license", CreateLicense)
+	authorized.PATCH("/api/license/update/:shortname", UpdateLicense)
+	authorized.POST("/api/user", authenticate.CreateUser)
+
+	return r
+}
 
 func HandleInvalidUrl(c *gin.Context) {
 
@@ -28,9 +51,10 @@ func HandleInvalidUrl(c *gin.Context) {
 	c.JSON(http.StatusNotFound, er)
 }
 func GetAllLicense(c *gin.Context) {
+
 	var licenses []models.LicenseDB
 
-	err := DB.Find(&licenses).Error
+	err := db.DB.Find(&licenses).Error
 	if err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
@@ -45,7 +69,7 @@ func GetAllLicense(c *gin.Context) {
 	res := models.LicenseResponse{
 		Data:   licenses,
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: len(licenses),
 		},
 	}
@@ -61,7 +85,7 @@ func GetLicense(c *gin.Context) {
 		return
 	}
 
-	err := DB.Where("shortname = ?", queryParam).First(&license).Error
+	err := db.DB.Where("shortname = ?", queryParam).First(&license).Error
 
 	if err != nil {
 		er := models.LicenseError{
@@ -78,7 +102,7 @@ func GetLicense(c *gin.Context) {
 	res := models.LicenseResponse{
 		Data:   []models.LicenseDB{license},
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -106,7 +130,7 @@ func CreateLicense(c *gin.Context) {
 	}
 	license := models.LicenseDB(input)
 
-	result := DB.FirstOrCreate(&license)
+	result := db.DB.FirstOrCreate(&license)
 	if result.RowsAffected == 0 {
 
 		er := models.LicenseError{
@@ -133,7 +157,7 @@ func CreateLicense(c *gin.Context) {
 	res := models.LicenseResponse{
 		Data:   []models.LicenseDB{license},
 		Status: http.StatusCreated,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -145,7 +169,7 @@ func UpdateLicense(c *gin.Context) {
 	var update models.LicenseDB
 	var license models.LicenseDB
 	shortname := c.Param("shortname")
-	if err := DB.Where("shortname = ?", shortname).First(&license).Error; err != nil {
+	if err := db.DB.Where("shortname = ?", shortname).First(&license).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
 			Message:   fmt.Sprintf("license with shortname '%s' not found", shortname),
@@ -167,7 +191,7 @@ func UpdateLicense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
-	if err := DB.Model(&license).Updates(update).Error; err != nil {
+	if err := db.DB.Model(&license).Updates(update).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "Failed to update license",
@@ -181,7 +205,7 @@ func UpdateLicense(c *gin.Context) {
 	res := models.LicenseResponse{
 		Data:   []models.LicenseDB{license},
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: 1,
 		},
 	}
@@ -194,16 +218,62 @@ func SearchInLicense(c *gin.Context) {
 	field := c.Query("field")
 	search_term := c.Query("search_term")
 	search := c.Query("search")
-	if field == "" && search_term == "" {
+	SpdxId := c.Query("spdxid")
+	DetectorType := c.Query("detector_type")
+	GPLv2compatible := c.Query("gplv2compatible")
+	GPLv3compatible := c.Query("gplv3compatible")
+	marydone := c.Query("marydone")
+	active := c.Query("active")
+	OSIapproved := c.Query("osiapproved")
+	fsffree := c.Query("fsffree")
+	copyleft := c.Query("copyleft")
+	var license []models.LicenseDB
+	query := db.DB.Model(&license)
+
+	if field == "" && search_term == "" && SpdxId == "" && GPLv2compatible == "" && GPLv3compatible == "" && DetectorType == "" && marydone == "" && active == "" && fsffree == "" && OSIapproved == "" && copyleft == "" {
 		GetAllLicense(c)
 		return
 	}
-	var query *gorm.DB
-	var license []models.License
+	if active != "" {
+		query = query.Where("active=?", active)
+	}
+
+	if fsffree != "" {
+		query = query.Where("fs_ffree=?", fsffree)
+	}
+
+	if OSIapproved != "" {
+		query = query.Where("os_iapproved=?", OSIapproved)
+	}
+
+	if copyleft != "" {
+		query = query.Where("copyleft=?", copyleft)
+	}
+
+	if SpdxId != "" {
+		query = query.Where("spdx_id=?", SpdxId)
+	}
+
+	if DetectorType != "" {
+		query = query.Where("detector_type=?", DetectorType)
+	}
+
+	if GPLv2compatible != "" {
+		query = query.Where("gp_lv2compatible=?", GPLv2compatible)
+	}
+
+	if GPLv3compatible != "" {
+		query = query.Where("gp_lv3compatible=?", GPLv3compatible)
+	}
+
+	if marydone != "" {
+		query = query.Where("marydone=?", marydone)
+	}
+
 	if search == "fuzzy" {
-		query = DB.Where(fmt.Sprintf("%s ILIKE ?", field), fmt.Sprintf("%%%s%%", search_term)).Find(&license)
+		query = query.Where(fmt.Sprintf("%s ILIKE ?", field), fmt.Sprintf("%%%s%%", search_term))
 	} else if search == "" || search == "full_text_search" {
-		query = DB.Where(field+" @@ plainto_tsquery(?)", search_term).Find(&license)
+		query = query.Where(field+" @@ plainto_tsquery(?)", search_term)
 	} else {
 		err := errors.New("")
 		er := models.LicenseError{
@@ -228,10 +298,12 @@ func SearchInLicense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
+	query.Find(&license)
+
 	res := models.LicenseResponse{
 		Data:   license,
 		Status: http.StatusOK,
-		Meta: models.Meta{
+		Meta: models.PaginationMeta{
 			ResourceCount: len(license),
 		},
 	}
