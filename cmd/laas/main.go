@@ -11,6 +11,7 @@ import (
 	"log"
 
 	"github.com/fossology/LicenseDb/pkg/api"
+	"github.com/fossology/LicenseDb/pkg/authenticate"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -50,6 +51,9 @@ func main() {
 		log.Fatalf("Failed to automigrate database: %v", err)
 	}
 
+	if err := database.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("Failed to automigrate database: %v", err)
+	}
 	if *populatedb {
 		var licenses []models.LicenseJson
 		// read the file of data
@@ -68,9 +72,14 @@ func main() {
 
 	r := gin.Default()
 	r.NoRoute(api.HandleInvalidUrl)
-	r.GET("/api/licenses", api.GetAllLicense)
-	r.GET("/api/license/:shortname", api.GetLicense)
-	r.POST("/api/license", api.CreateLicense)
-	r.PATCH("/api/license/:shortname", api.UpdateLicense)
+	authorized := r.Group("/")
+	authorized.Use(authenticate.AuthenticationMiddleware())
+	authorized.GET("/api/license/:shortname", api.GetLicense)
+	authorized.POST("/api/license", api.CreateLicense)
+	authorized.PATCH("/api/license/update/:shortname", api.UpdateLicense)
+	authorized.GET("/api/licenses", api.SearchInLicense)
+	r.POST("/api/user", authenticate.CreateUser)
+	authorized.GET("/api/users", authenticate.GetAllUser)
+	authorized.GET("/api/user/:id", authenticate.GetUser)
 	r.Run()
 }
