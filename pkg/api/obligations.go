@@ -9,9 +9,12 @@ package api
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -503,4 +506,150 @@ func GetObligationAudits(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// ImportObligations creates new obligation records via a json file.
+//
+//	@Summary		Import obligations by uploading a json file
+//	@Description	Import obligations by uploading a json file
+//	@Id				ImportObligations
+//	@Tags			Obligations
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			file	formData	file true "obligations json file list"
+//	@Success		207		{object}	models.ImportObligationsResponse
+//	@Failure		400		{object}	models.LicenseError	"input file must be present"
+//	@Failure		500		{object}	models.LicenseError	"Internal server error"
+//	@Security		ApiKeyAuth
+//	@Router			/obligations/import [post]
+func ImportObligations(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "input file must be present",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+	defer file.Close()
+
+	if filepath.Ext(header.Filename) != ".json" {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "only files with format *.json are allowed",
+			Error:     "only files with format *.json are allowed",
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+
+	var obligations []models.ObligationImport
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&obligations); err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusInternalServerError,
+			Message:   "invalid json",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusInternalServerError, er)
+		return
+	}
+
+	res := models.ImportObligationsResponse{
+		Status: http.StatusMultiStatus,
+	}
+
+	for _, obligation := range obligations {
+		_ = db.DB.Transaction(func(tx *gorm.DB) error {
+			ob := models.Obligation{
+				Topic:          obligation.Topic,
+				Type:           obligation.Type,
+				Text:           obligation.Text,
+				Classification: obligation.Classification,
+				Modifications:  obligation.Modifications,
+				Comment:        obligation.Comment,
+				Active:         obligation.Active,
+				TextUpdatable:  obligation.TextUpdatable,
+			}
+
+			hash := md5.Sum([]byte(ob.Text))
+			md5hash := hex.EncodeToString(hash[:])
+			ob.Md5 = md5hash
+
+			result := tx.
+				Where(&models.Obligation{Topic: ob.Topic}).
+				Or(&models.Obligation{Md5: ob.Md5}).
+				FirstOrCreate(&ob)
+
+			if result.RowsAffected == 0 {
+				res.Data = append(res.Data, models.LicenseError{
+					Status: http.StatusConflict,
+					Message: fmt.Sprintf("Obligation with topic '%s' or MD5 '%s' already exists",
+						ob.Topic, ob.Md5),
+					Error:     ob.Topic,
+					Path:      c.Request.URL.Path,
+					Timestamp: time.Now().Format(time.RFC3339),
+				})
+				return errors.New("obligation already exists")
+			}
+			if result.Error != nil {
+				res.Data = append(res.Data, models.LicenseError{
+					Status:    http.StatusInternalServerError,
+					Message:   fmt.Sprintf("Failed to create obligation: %s", result.Error.Error()),
+					Error:     ob.Topic,
+					Path:      c.Request.URL.Path,
+					Timestamp: time.Now().Format(time.RFC3339),
+				})
+				return err
+			}
+
+			var maps []models.ObligationMap
+			for _, i := range obligation.Shortnames {
+				var license models.LicenseDB
+				if err := tx.Debug().Where(models.LicenseDB{Shortname: i}).First(&license).Error; err != nil {
+					res.Data = append(res.Data, models.LicenseError{
+						Status:    http.StatusInternalServerError,
+						Message:   fmt.Sprintf("Error finding license with shortname: %s", i),
+						Error:     ob.Topic,
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					})
+					return err
+				}
+				log.Println(license.Shortname)
+				maps = append(maps, models.ObligationMap{
+					ObligationPk: ob.Id,
+					RfPk:         license.Id,
+				})
+			}
+
+			if err := tx.Create(&maps).Error; err != nil {
+				res.Data = append(res.Data, models.LicenseError{
+					Status:    http.StatusInternalServerError,
+					Message:   "Error linking obligation with license",
+					Error:     ob.Topic,
+					Path:      c.Request.URL.Path,
+					Timestamp: time.Now().Format(time.RFC3339),
+				})
+				return err
+			}
+
+			res.Data = append(res.Data, models.ObligationImportStatus{
+				Data:   models.ObligationId{Id: ob.Id, Topic: ob.Topic},
+				Status: http.StatusCreated,
+			})
+
+			return nil
+		})
+	}
+
+	c.JSON(http.StatusMultiStatus, res)
 }

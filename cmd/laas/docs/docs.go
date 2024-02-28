@@ -880,6 +880,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/obligations/import": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Import obligations by uploading a json file",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Obligations"
+                ],
+                "summary": "Import obligations by uploading a json file",
+                "operationId": "ImportObligations",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "obligations json file list",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "207": {
+                        "description": "Multi-Status",
+                        "schema": {
+                            "$ref": "#/definitions/models.ImportObligationsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "input file must be present",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    }
+                }
+            }
+        },
         "/obligations/{topic}": {
             "get": {
                 "description": "Get an active based on given topic",
@@ -1353,6 +1403,20 @@ const docTemplate = `{
                 "status": {
                     "type": "integer",
                     "example": 200
+                }
+            }
+        },
+        "models.ImportObligationsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "can be of type models.LicenseError or models.ObligationImportStatus",
+                    "type": "array",
+                    "items": {}
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 207
                 }
             }
         },
