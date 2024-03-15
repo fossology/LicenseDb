@@ -285,82 +285,28 @@ definitions:
       active:
         type: boolean
       classification:
-        enum:
-        - green
-        - white
-        - yellow
-        - red
+        example: green
         type: string
       comment:
-        example: This is a comment.
         type: string
       id:
         example: 147
         type: integer
-      md5:
-        example: deadbeef
-        type: string
       modifications:
-        type: boolean
-      text:
-        example: Source code be made available when distributing the software.
-        type: string
-      text_updatable:
-        type: boolean
-      topic:
-        example: copyleft
-        type: string
-      type:
-        enum:
-        - obligation
-        - restriction
-        - risk
-        - right
-        type: string
-    type: object
-  models.ObligationInput:
-    properties:
-      active:
         example: true
         type: boolean
-      classification:
-        enum:
-        - green
-        - white
-        - yellow
-        - red
-        type: string
-      comment:
-        example: This is a comment.
-        type: string
-      modifications:
-        type: boolean
-      shortnames:
-        example:
-        - GPL-2.0-only
-        - GPL-2.0-or-later
-        items:
-          type: string
-        type: array
       text:
         example: Source code be made available when distributing the software.
         type: string
       text_updatable:
+        example: true
         type: boolean
       topic:
         example: copyleft
         type: string
       type:
-        enum:
-        - obligation
-        - restriction
-        - risk
-        - right
+        example: risk
         type: string
-    required:
-    - text
-    - topic
-    - type
     type: object
   models.ObligationMapResponse:
     properties:
@@ -387,6 +333,44 @@ definitions:
         example: copyleft
         type: string
     type: object
+  models.ObligationPATCHRequestJSONSchema:
+    type: object
+  models.ObligationPOSTRequestJSONSchema:
+    properties:
+      active:
+        example: true
+        type: boolean
+      classification:
+        type: string
+      comment:
+        type: string
+      modifications:
+        type: boolean
+      shortnames:
+        example:
+        - GPL-2.0-only
+        - GPL-2.0-or-later
+        items:
+          type: string
+        type: array
+      text:
+        example: Source code be made available when distributing the software.
+        type: string
+      topic:
+        example: copyleft
+        type: string
+      type:
+        type: string
+    required:
+    - active
+    - classification
+    - comment
+    - modifications
+    - shortnames
+    - text
+    - topic
+    - type
+    type: object
   models.ObligationResponse:
     properties:
       data:
@@ -398,6 +382,14 @@ definitions:
       status:
         example: 200
         type: integer
+    type: object
+  models.OptionalData-string:
+    properties:
+      isDefined:
+        description: This is set to true if corresponding key is present in json object
+        type: boolean
+      value:
+        type: string
     type: object
   models.PaginationMeta:
     properties:
@@ -436,39 +428,6 @@ definitions:
     required:
     - field
     - search_term
-    type: object
-  models.UpdateObligation:
-    properties:
-      active:
-        example: true
-        type: boolean
-      classification:
-        enum:
-        - green
-        - white
-        - yellow
-        - red
-        type: string
-      comment:
-        example: This is a comment.
-        type: string
-      modifications:
-        type: boolean
-      text:
-        example: Source code be made available when distributing the software.
-        type: string
-      text_updatable:
-        type: boolean
-      topic:
-        example: copyleft
-        type: string
-      type:
-        enum:
-        - obligation
-        - restriction
-        - risk
-        - right
-        type: string
     type: object
   models.User:
     properties:
@@ -1075,7 +1034,7 @@ paths:
         name: obligation
         required: true
         schema:
-          $ref: '#/definitions/models.ObligationInput'
+          $ref: '#/definitions/models.ObligationPOSTRequestJSONSchema'
       produces:
       - application/json
       responses:
@@ -1167,7 +1126,7 @@ paths:
         name: obligation
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateObligation'
+          $ref: '#/definitions/models.ObligationPATCHRequestJSONSchema'
       produces:
       - application/json
       responses:
