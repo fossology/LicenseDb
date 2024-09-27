@@ -394,12 +394,12 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
-                            "rf_spdx_id",
-                            "rf_shortname",
-                            "rf_fullname"
+                            "spdx_id",
+                            "shortname",
+                            "fullname"
                         ],
                         "type": "string",
-                        "default": "rf_shortname",
+                        "default": "shortname",
                         "description": "Sort by field",
                         "name": "sort_by",
                         "in": "query"
@@ -1062,7 +1062,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationResponse"
+                            "$ref": "#/definitions/models.SwaggerObligationResponse"
                         }
                     },
                     "404": {
@@ -1098,7 +1098,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationPOSTRequestJSONSchema"
+                            "$ref": "#/definitions/models.ObligationDTO"
                         }
                     }
                 ],
@@ -1106,7 +1106,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationResponse"
+                            "$ref": "#/definitions/models.SwaggerObligationResponse"
                         }
                     },
                     "400": {
@@ -1153,7 +1153,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.ObligationJSONFileFormat"
+                                "$ref": "#/definitions/models.ObligationDTO"
                             }
                         }
                     },
@@ -1303,7 +1303,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationResponse"
+                            "$ref": "#/definitions/models.SwaggerObligationResponse"
                         }
                     },
                     "404": {
@@ -1385,7 +1385,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationPATCHRequestJSONSchema"
+                            "$ref": "#/definitions/models.ObligationUpdateDTO"
                         }
                     }
                 ],
@@ -1393,7 +1393,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ObligationResponse"
+                            "$ref": "#/definitions/models.SwaggerObligationResponse"
                         }
                     },
                     "400": {
@@ -1772,7 +1772,7 @@ const docTemplate = `{
                 },
                 "field": {
                     "type": "string",
-                    "example": "rf_text"
+                    "example": "text"
                 },
                 "id": {
                     "type": "integer",
@@ -1837,87 +1837,93 @@ const docTemplate = `{
         "models.LicenseDB": {
             "type": "object",
             "required": [
-                "rf_fullname",
-                "rf_shortname",
-                "rf_spdx_id",
-                "rf_text"
+                "fullname",
+                "shortname",
+                "spdx_id",
+                "text"
             ],
             "properties": {
+                "FSFfree": {
+                    "type": "boolean"
+                },
+                "Fedora": {
+                    "type": "string"
+                },
+                "GPLv2compatible": {
+                    "type": "boolean"
+                },
+                "GPLv3compatible": {
+                    "type": "boolean"
+                },
+                "OSIapproved": {
+                    "type": "boolean"
+                },
+                "active": {
+                    "type": "boolean"
+                },
+                "add_date": {
+                    "type": "string",
+                    "example": "2023-12-01T18:10:25.00+05:30"
+                },
+                "copyleft": {
+                    "type": "boolean"
+                },
+                "detector_type": {
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0,
+                    "example": 1
+                },
                 "external_ref": {
                     "$ref": "#/definitions/datatypes.JSONType-models_LicenseDBSchemaExtension"
+                },
+                "flag": {
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0,
+                    "example": 1
+                },
+                "fullname": {
+                    "type": "string",
+                    "example": "MIT License"
                 },
                 "marydone": {
                     "type": "boolean"
                 },
-                "rf_FSFfree": {
-                    "type": "boolean"
-                },
-                "rf_Fedora": {
-                    "type": "string"
-                },
-                "rf_GPLv2compatible": {
-                    "type": "boolean"
-                },
-                "rf_GPLv3compatible": {
-                    "type": "boolean"
-                },
-                "rf_OSIapproved": {
-                    "type": "boolean"
-                },
-                "rf_active": {
-                    "type": "boolean"
-                },
-                "rf_add_date": {
-                    "type": "string",
-                    "example": "2023-12-01T18:10:25.00+05:30"
-                },
-                "rf_copyleft": {
-                    "type": "boolean"
-                },
-                "rf_detector_type": {
-                    "type": "integer",
-                    "maximum": 2,
-                    "minimum": 0,
-                    "example": 1
-                },
-                "rf_flag": {
-                    "type": "integer",
-                    "maximum": 2,
-                    "minimum": 0,
-                    "example": 1
-                },
-                "rf_fullname": {
-                    "type": "string",
-                    "example": "MIT License"
-                },
-                "rf_notes": {
+                "notes": {
                     "type": "string",
                     "example": "This license has been superseded."
                 },
-                "rf_risk": {
+                "obligations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Obligation"
+                    }
+                },
+                "risk": {
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 0
                 },
-                "rf_shortname": {
+                "shortname": {
                     "type": "string",
                     "example": "MIT"
                 },
-                "rf_source": {
+                "source": {
                     "type": "string"
                 },
-                "rf_spdx_id": {
+                "spdx_id": {
                     "type": "string",
                     "example": "MIT"
                 },
-                "rf_text": {
+                "text": {
                     "type": "string",
                     "example": "MIT License Text here"
                 },
-                "rf_text_updatable": {
+                "text_updatable": {
                     "type": "boolean"
                 },
-                "rf_url": {
+                "url": {
                     "type": "string",
                     "example": "https://opensource.org/licenses/MIT"
                 }
@@ -2052,84 +2058,90 @@ const docTemplate = `{
         "models.LicenseUpdateJSONSchema": {
             "type": "object",
             "properties": {
+                "FSFfree": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "Fedora": {
+                    "type": "string",
+                    "example": "Fedora"
+                },
+                "GPLv2compatible": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "GPLv3compatible": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "OSIapproved": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "copyleft": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "detector_type": {
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0,
+                    "example": 1
+                },
                 "external_ref": {
                     "$ref": "#/definitions/datatypes.JSONType-models_LicenseDBSchemaExtension"
+                },
+                "flag": {
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0,
+                    "example": 1
+                },
+                "fullname": {
+                    "type": "string",
+                    "example": "MIT License"
                 },
                 "marydone": {
                     "type": "boolean",
                     "example": false
                 },
-                "rf_FSFfree": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "rf_Fedora": {
-                    "type": "string",
-                    "example": "Fedora"
-                },
-                "rf_GPLv2compatible": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "rf_GPLv3compatible": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "rf_OSIapproved": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "rf_active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "rf_copyleft": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "rf_detector_type": {
-                    "type": "integer",
-                    "maximum": 2,
-                    "minimum": 0,
-                    "example": 1
-                },
-                "rf_flag": {
-                    "type": "integer",
-                    "maximum": 2,
-                    "minimum": 0,
-                    "example": 1
-                },
-                "rf_fullname": {
-                    "type": "string",
-                    "example": "MIT License"
-                },
-                "rf_notes": {
+                "notes": {
                     "type": "string",
                     "example": "This license has been superseded."
                 },
-                "rf_risk": {
+                "obligations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Obligation"
+                    }
+                },
+                "risk": {
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 0,
                     "example": 1
                 },
-                "rf_source": {
+                "source": {
                     "type": "string",
                     "example": "Source"
                 },
-                "rf_spdx_id": {
+                "spdx_id": {
                     "type": "string",
                     "example": "MIT"
                 },
-                "rf_text": {
+                "text": {
                     "type": "string",
                     "example": "MIT License Text here"
                 },
-                "rf_text_updatable": {
+                "text_updatable": {
                     "type": "boolean",
                     "example": false
                 },
-                "rf_url": {
+                "url": {
                     "type": "string",
                     "example": "https://opensource.org/licenses/MIT"
                 }
@@ -2141,26 +2153,111 @@ const docTemplate = `{
                 "active": {
                     "type": "boolean"
                 },
-                "classification": {
+                "category": {
                     "type": "string",
                     "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
+                        "DISTRIBUTION",
+                        "PATENT",
+                        "INTERNAL",
+                        "CONTRACTUAL",
+                        "EXPORT CONTROL",
+                        "GENERAL"
                     ],
-                    "example": "green"
+                    "example": "DISTRIBUTION"
+                },
+                "classification": {
+                    "$ref": "#/definitions/models.ObligationClassification"
                 },
                 "comment": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer",
-                    "example": 147
+                    "type": "integer"
+                },
+                "licenses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.LicenseDB"
+                    }
+                },
+                "md5": {
+                    "type": "string"
+                },
+                "modifications": {
+                    "type": "boolean"
+                },
+                "obligationClassificationId": {
+                    "type": "integer"
+                },
+                "obligationTypeId": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "textUpdatable": {
+                    "type": "boolean"
+                },
+                "topic": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.ObligationType"
+                }
+            }
+        },
+        "models.ObligationClassification": {
+            "type": "object",
+            "properties": {
+                "classification": {
+                    "type": "string"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ObligationDTO": {
+            "type": "object",
+            "required": [
+                "category",
+                "classification",
+                "shortnames",
+                "text",
+                "topic",
+                "type"
+            ],
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "DISTRIBUTION"
+                },
+                "classification": {
+                    "type": "string",
+                    "example": "GREEN"
+                },
+                "comment": {
+                    "type": "string"
                 },
                 "modifications": {
                     "type": "boolean",
                     "example": true
+                },
+                "shortnames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "GPL-2.0-only",
+                        "GPL-2.0-or-later"
+                    ]
                 },
                 "text": {
                     "type": "string",
@@ -2176,13 +2273,7 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ],
-                    "example": "risk"
+                    "example": "RISK"
                 }
             }
         },
@@ -2205,75 +2296,12 @@ const docTemplate = `{
                 "data": {
                     "$ref": "#/definitions/models.ObligationId"
                 },
+                "message": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "integer",
                     "example": 200
-                }
-            }
-        },
-        "models.ObligationJSONFileFormat": {
-            "type": "object",
-            "required": [
-                "active",
-                "classification",
-                "comment",
-                "modifications",
-                "shortnames",
-                "text",
-                "text_updatable",
-                "topic",
-                "type"
-            ],
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "classification": {
-                    "type": "string",
-                    "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
-                    ]
-                },
-                "comment": {
-                    "type": "string",
-                    "example": "This is a comment."
-                },
-                "modifications": {
-                    "type": "boolean"
-                },
-                "shortnames": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "GPL-2.0-only",
-                        "GPL-2.0-or-later"
-                    ]
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Source code be made available when distributing the software."
-                },
-                "text_updatable": {
-                    "type": "boolean"
-                },
-                "topic": {
-                    "description": "binding:\"required\" tag cannot be used as is works only for request body",
-                    "type": "string",
-                    "example": "copyleft"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ]
                 }
             }
         },
@@ -2324,108 +2352,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ObligationPATCHRequestJSONSchema": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "classification": {
-                    "type": "string",
-                    "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
-                    ]
-                },
-                "comment": {
-                    "type": "string",
-                    "example": "This is a comment."
-                },
-                "modifications": {
-                    "type": "boolean"
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Source code be made available when distributing the software."
-                },
-                "text_updatable": {
-                    "type": "boolean"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ]
-                }
-            }
-        },
-        "models.ObligationPOSTRequestJSONSchema": {
-            "type": "object",
-            "required": [
-                "active",
-                "classification",
-                "comment",
-                "modifications",
-                "shortnames",
-                "text",
-                "topic",
-                "type"
-            ],
-            "properties": {
-                "active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "classification": {
-                    "type": "string",
-                    "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
-                    ]
-                },
-                "comment": {
-                    "type": "string"
-                },
-                "modifications": {
-                    "type": "boolean"
-                },
-                "shortnames": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "GPL-2.0-only",
-                        "GPL-2.0-or-later"
-                    ]
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Source code be made available when distributing the software."
-                },
-                "topic": {
-                    "type": "string",
-                    "example": "copyleft"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ]
-                }
-            }
-        },
         "models.ObligationPreview": {
             "type": "object",
             "properties": {
@@ -2459,21 +2385,52 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ObligationResponse": {
+        "models.ObligationType": {
             "type": "object",
             "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Obligation"
-                    }
+                "id": {
+                    "type": "integer"
                 },
-                "paginationmeta": {
-                    "$ref": "#/definitions/models.PaginationMeta"
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ObligationUpdateDTO": {
+            "type": "object",
+            "required": [
+                "category"
+            ],
+            "properties": {
+                "active": {
+                    "type": "boolean"
                 },
-                "status": {
-                    "type": "integer",
-                    "example": 200
+                "category": {
+                    "type": "string",
+                    "example": "DISTRIBUTION"
+                },
+                "classification": {
+                    "type": "string",
+                    "example": "GREEN"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "modifications": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Source code be made available when distributing the software."
+                },
+                "text_updatable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "type": {
+                    "type": "string",
+                    "example": "RISK"
                 }
             }
         },
@@ -2515,7 +2472,7 @@ const docTemplate = `{
             "properties": {
                 "field": {
                     "type": "string",
-                    "example": "rf_text"
+                    "example": "text"
                 },
                 "search": {
                     "type": "string",
@@ -2527,6 +2484,24 @@ const docTemplate = `{
                 "search_term": {
                     "type": "string",
                     "example": "MIT License"
+                }
+            }
+        },
+        "models.SwaggerObligationResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ObligationDTO"
+                    }
+                },
+                "paginationmeta": {
+                    "$ref": "#/definitions/models.PaginationMeta"
+                },
+                "status": {
+                    "type": "integer",
+                    "example": 200
                 }
             }
         },

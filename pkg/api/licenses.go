@@ -49,8 +49,8 @@ import (
 //	@Param			page			query		int						false	"Page number"
 //	@Param			limit			query		int						false	"Limit of responses per page"
 //	@Param			externalRef		query		string					false	"External reference parameters"
-//	@Param			sort_by			query		string					false	"Sort by field"			Enums(rf_spdx_id, rf_shortname, rf_fullname)	default(rf_shortname)
-//	@Param			order_by		query		string					false	"Asc or desc ordering"	Enums(asc, desc)								default(asc)
+//	@Param			sort_by			query		string					false	"Sort by field"			Enums(spdx_id, shortname, fullname)	default(shortname)
+//	@Param			order_by		query		string					false	"Asc or desc ordering"	Enums(asc, desc)					default(asc)
 //	@Success		200				{object}	models.LicenseResponse	"Filtered licenses"
 //	@Failure		400				{object}	models.LicenseError		"Invalid value"
 //	@Security		ApiKeyAuth || {}
@@ -170,8 +170,8 @@ func FilterLicense(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	orderBy := c.Query("order_by")
 	queryOrderString := ""
-	if sortBy != "" && (sortBy == "rf_spdx_id" || sortBy == "rf_shortname" || sortBy == "rf_fullname") {
-		queryOrderString += sortBy
+	if sortBy != "" && (sortBy == "spdx_id" || sortBy == "shortname" || sortBy == "fullname") {
+		queryOrderString += "rf_" + sortBy
 	} else {
 		queryOrderString += "rf_shortname"
 	}
@@ -412,12 +412,12 @@ func UpdateLicense(c *gin.Context) {
 				er := models.LicenseError{
 					Status:    http.StatusBadRequest,
 					Message:   "Text is not updatable",
-					Error:     "Field `rf_text_updatable` needs to be true to update the text",
+					Error:     "Field `text_updatable` needs to be true to update the text",
 					Path:      c.Request.URL.Path,
 					Timestamp: time.Now().Format(time.RFC3339),
 				}
 				c.JSON(http.StatusBadRequest, er)
-				return errors.New("field `rf_text_updatable` needs to be true to update the text")
+				return errors.New("field `text_updatable` needs to be true to update the text")
 			}
 
 			// Update flag to indicate the license text was updated.
@@ -442,7 +442,7 @@ func UpdateLicense(c *gin.Context) {
 		newLicense := models.LicenseDB(updates)
 
 		// Update all other fields except external_ref and rf_shortname
-		if err := tx.Model(&newLicense).Omit("external_ref", "rf_shortname").Clauses(clause.Returning{}).Where(models.LicenseDB{Id: oldLicense.Id}).Updates(newLicense).Error; err != nil {
+		if err := tx.Model(&newLicense).Omit("external_ref", "rf_shortname", "Obligations").Clauses(clause.Returning{}).Where(models.LicenseDB{Id: oldLicense.Id}).Updates(newLicense).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusInternalServerError,
 				Message:   "Failed to update license",
@@ -767,6 +767,8 @@ func SearchInLicense(c *gin.Context) {
 		return
 	}
 
+	input.Field = "rf_" + input.Field
+
 	var license []models.LicenseDB
 	query := db.DB.Model(&license)
 
@@ -911,10 +913,14 @@ func ImportLicenses(c *gin.Context) {
 			errMessage, importStatus, oldLicense, newLicense := utils.InsertOrUpdateLicenseOnImport(tx, &licenses[i], &externalRefs[i])
 
 			if importStatus == utils.IMPORT_FAILED {
+				erroredLicense := ""
+				if licenses[i].Shortname != nil {
+					erroredLicense = *licenses[i].Shortname
+				}
 				res.Data = append(res.Data, models.LicenseError{
 					Status:    http.StatusInternalServerError,
 					Message:   errMessage,
-					Error:     *licenses[i].Shortname,
+					Error:     erroredLicense,
 					Path:      c.Request.URL.Path,
 					Timestamp: time.Now().Format(time.RFC3339),
 				})
