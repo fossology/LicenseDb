@@ -332,6 +332,16 @@ definitions:
     properties:
       active:
         type: boolean
+      category:
+        enum:
+        - Distribution
+        - Patent
+        - Internal
+        - Contractual
+        - Export Control
+        - General
+        example: Distribution
+        type: string
       classification:
         $ref: '#/definitions/models.ObligationClassification'
       comment:

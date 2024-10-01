@@ -305,6 +305,7 @@ type Obligation struct {
 	Licenses                   []*LicenseDB              `gorm:"many2many:obligation_licenses;"`
 	Type                       *ObligationType           `gorm:"foreignKey:ObligationTypeId"`
 	Classification             *ObligationClassification `gorm:"foreignKey:ObligationClassificationId"`
+	Category                   string                    `json:"category" enums:"Distribution,Patent,Internal,Contractual,Export Control,General" example:"Distribution"`
 }
 
 func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {

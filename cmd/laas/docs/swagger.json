@@ -2146,6 +2146,18 @@
                 "active": {
                     "type": "boolean"
                 },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "Distribution",
+                        "Patent",
+                        "Internal",
+                        "Contractual",
+                        "Export Control",
+                        "General"
+                    ],
+                    "example": "Distribution"
+                },
                 "classification": {
                     "$ref": "#/definitions/models.ObligationClassification"
                 },
