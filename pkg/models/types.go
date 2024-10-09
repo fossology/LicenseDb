@@ -283,6 +283,7 @@ type Obligation struct {
 	Active         bool   `json:"active"`
 	TextUpdatable  bool   `json:"text_updatable" example:"true"`
 	Md5            string `gorm:"unique" json:"-"`
+	Category       string `json:"category" enums:"Distribution,Patent,Internal,Contractual,Export Control,General" example:"Distribution"`
 }
 
 // ObligationPreview is just the Type and Topic of Obligation
@@ -307,6 +308,7 @@ type ObligationPOSTRequestJSONSchema struct {
 	Comment        string   `json:"comment" binding:"required"`
 	Shortnames     []string `json:"shortnames" binding:"required" example:"GPL-2.0-only,GPL-2.0-or-later"`
 	Active         bool     `json:"active" binding:"required" example:"true"`
+	Category       string   `json:"category" enums:"Distribution,Patent,Internal,Contractual,Export Control,General" binding:"required" example:"Distribution"`
 }
 
 // ObligationPATCHRequestJSONSchema represents the data format of PATCH request for obligation
@@ -318,6 +320,7 @@ type ObligationPATCHRequestJSONSchema struct {
 	Comment        OptionalData[string] `json:"comment" swaggertype:"string" example:"This is a comment."`
 	Active         OptionalData[bool]   `json:"active" swaggertype:"boolean" example:"true"`
 	TextUpdatable  OptionalData[bool]   `json:"text_updatable" swaggertype:"boolean"`
+	Category       OptionalData[string] `json:"category" enums:"Distribution,Patent,Internal,Contractual,Export Control,General" binding:"required" example:"Distribution"`
 }
 
 // ObligationResponse represents the response format for obligation data.
