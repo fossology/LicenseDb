@@ -2153,6 +2153,18 @@ const docTemplate = `{
                 "active": {
                     "type": "boolean"
                 },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "Distribution",
+                        "Patent",
+                        "Internal",
+                        "Contractual",
+                        "Export Control",
+                        "General"
+                    ],
+                    "example": "Distribution"
+                },
                 "classification": {
                     "$ref": "#/definitions/models.ObligationClassification"
                 },
@@ -2335,139 +2347,6 @@ const docTemplate = `{
                 }
             }
         },
-<<<<<<< HEAD
-=======
-        "models.ObligationPATCHRequestJSONSchema": {
-            "type": "object",
-            "required": [
-                "category"
-            ],
-            "properties": {
-                "active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "Distribution",
-                        "Patent",
-                        "Internal",
-                        "Contractual",
-                        "Export Control",
-                        "General"
-                    ],
-                    "example": "Distribution"
-                },
-                "classification": {
-                    "type": "string",
-                    "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
-                    ]
-                },
-                "comment": {
-                    "type": "string",
-                    "example": "This is a comment."
-                },
-                "modifications": {
-                    "type": "boolean"
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Source code be made available when distributing the software."
-                },
-                "text_updatable": {
-                    "type": "boolean"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ]
-                }
-            }
-        },
-        "models.ObligationPOSTRequestJSONSchema": {
-            "type": "object",
-            "required": [
-                "active",
-                "category",
-                "classification",
-                "comment",
-                "modifications",
-                "shortnames",
-                "text",
-                "topic",
-                "type"
-            ],
-            "properties": {
-                "active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "Distribution",
-                        "Patent",
-                        "Internal",
-                        "Contractual",
-                        "Export Control",
-                        "General"
-                    ],
-                    "example": "Distribution"
-                },
-                "classification": {
-                    "type": "string",
-                    "enum": [
-                        "green",
-                        "white",
-                        "yellow",
-                        "red"
-                    ]
-                },
-                "comment": {
-                    "type": "string"
-                },
-                "modifications": {
-                    "type": "boolean"
-                },
-                "shortnames": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "GPL-2.0-only",
-                        "GPL-2.0-or-later"
-                    ]
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Source code be made available when distributing the software."
-                },
-                "topic": {
-                    "type": "string",
-                    "example": "copyleft"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "obligation",
-                        "restriction",
-                        "risk",
-                        "right"
-                    ]
-                }
-            }
-        },
->>>>>>> 65d5aaf (fix: obligation POST, PATCH fixed for category)
         "models.ObligationPreview": {
             "type": "object",
             "properties": {
@@ -2512,7 +2391,6 @@ const docTemplate = `{
                 }
             }
         },
-<<<<<<< HEAD
         "models.ObligationUpdateDTO": {
             "type": "object",
             "properties": {
@@ -2544,8 +2422,6 @@ const docTemplate = `{
                 }
             }
         },
-=======
->>>>>>> 65d5aaf (fix: obligation POST, PATCH fixed for category)
         "models.PaginationMeta": {
             "type": "object",
             "properties": {
