@@ -2232,6 +2232,14 @@ const docTemplate = `{
                 "url": {
                     "type": "string",
                     "example": "https://opensource.org/licenses/MIT"
+                },
+                "user": {
+                    "description": "Reference to User",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    ]
                 }
             }
         },
