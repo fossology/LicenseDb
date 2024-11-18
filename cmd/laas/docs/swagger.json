@@ -2452,6 +2452,18 @@
                 "active": {
                     "type": "boolean"
                 },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "DISTRIBUTION",
+                        "PATENT",
+                        "INTERNAL",
+                        "CONTRACTUAL",
+                        "EXPORT CONTROL",
+                        "GENERAL"
+                    ],
+                    "example": "DISTRIBUTION"
+                },
                 "classification": {
                     "$ref": "#/definitions/models.ObligationClassification"
                 },
@@ -2531,6 +2543,7 @@
         "models.ObligationDTO": {
             "type": "object",
             "required": [
+                "category",
                 "classification",
                 "shortnames",
                 "text",
@@ -2540,6 +2553,10 @@
             "properties": {
                 "active": {
                     "type": "boolean"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "DISTRIBUTION"
                 },
                 "classification": {
                     "type": "string",
@@ -2720,9 +2737,16 @@
         },
         "models.ObligationUpdateDTO": {
             "type": "object",
+            "required": [
+                "category"
+            ],
             "properties": {
                 "active": {
                     "type": "boolean"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "DISTRIBUTION"
                 },
                 "classification": {
                     "type": "string",
