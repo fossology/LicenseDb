@@ -790,6 +790,12 @@ const docTemplate = `{
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Incorrect username or password",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
                     }
                 }
             }
@@ -1860,6 +1866,12 @@ const docTemplate = `{
                 "operationId": "GetAllUsers",
                 "parameters": [
                     {
+                        "type": "boolean",
+                        "description": "Active user only",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Page number",
                         "name": "page",
@@ -1912,7 +1924,98 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserInput"
+                            "$ref": "#/definitions/models.UserCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid json body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Users can update their profile using this endpoint",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Users can update their profile using this endpoint",
+                "operationId": "UpdateProfile",
+                "parameters": [
+                    {
+                        "description": "Profile fields to update",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProfileUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid json body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/oidc": {
+            "post": {
+                "description": "Create a new service user via oidc id token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create new user via oidc id token",
+                "operationId": "CreateOidcUser",
+                "parameters": [
+                    {
+                        "description": "User to create",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.OidcUserCreate"
                         }
                     }
                 ],
@@ -1938,14 +2041,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/users/{username}": {
             "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get a single user by ID",
+                "description": "Get a single user by username",
                 "consumes": [
                     "application/json"
                 ],
@@ -1959,9 +2062,9 @@ const docTemplate = `{
                 "operationId": "GetUser",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
                         "in": "path",
                         "required": true
                     }
@@ -1981,6 +2084,102 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deactivate an user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Deactivate user",
+                "operationId": "DeleteUser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username of the user to be marked as inactive",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "No user with given username found",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a service user, requires admin rights",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update user, requires admin rights",
+                "operationId": "UpdateUser",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "username of the user to be updated",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User to update",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid json body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LicenseError"
+                        }
+                    },
+                    "403": {
+                        "description": "This resource requires elevated access rights",
                         "schema": {
                             "$ref": "#/definitions/models.LicenseError"
                         }
@@ -2756,6 +2955,14 @@ const docTemplate = `{
                 }
             }
         },
+        "models.OidcUserCreate": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.PaginationMeta": {
             "type": "object",
             "properties": {
@@ -2782,6 +2989,21 @@ const docTemplate = `{
                 "total_pages": {
                     "type": "integer",
                     "example": 20
+                }
+            }
+        },
+        "models.ProfileUpdate": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string",
+                    "example": "fossy"
+                },
+                "user_email": {
+                    "type": "string"
+                },
+                "user_password": {
+                    "type": "string"
                 }
             }
         },
@@ -2829,18 +3051,22 @@ const docTemplate = `{
         },
         "models.User": {
             "type": "object",
-            "required": [
-                "userlevel",
-                "username"
-            ],
             "properties": {
+                "display_name": {
+                    "type": "string",
+                    "example": "fossy"
+                },
                 "id": {
                     "type": "integer",
                     "example": 123
                 },
-                "userlevel": {
+                "user_email": {
                     "type": "string",
-                    "example": "admin"
+                    "example": "fossy@org.com"
+                },
+                "user_level": {
+                    "type": "string",
+                    "example": "USER"
                 },
                 "username": {
                     "type": "string",
@@ -2848,21 +3074,34 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UserInput": {
+        "models.UserCreate": {
             "type": "object",
             "required": [
-                "password",
-                "userlevel",
+                "display_name",
+                "user_email",
+                "user_level",
                 "username"
             ],
             "properties": {
-                "password": {
+                "display_name": {
                     "type": "string",
                     "example": "fossy"
                 },
-                "userlevel": {
+                "user_email": {
                     "type": "string",
-                    "example": "admin"
+                    "example": "fossy@org.com"
+                },
+                "user_level": {
+                    "type": "string",
+                    "enum": [
+                        "USER",
+                        "ADMIN"
+                    ],
+                    "example": "ADMIN"
+                },
+                "user_password": {
+                    "type": "string",
+                    "example": "fossy"
                 },
                 "username": {
                     "type": "string",
@@ -2902,6 +3141,36 @@ const docTemplate = `{
                 "status": {
                     "type": "integer",
                     "example": 200
+                }
+            }
+        },
+        "models.UserUpdate": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "fossy"
+                },
+                "user_email": {
+                    "type": "string"
+                },
+                "user_level": {
+                    "type": "string",
+                    "enum": [
+                        "USER",
+                        "ADMIN"
+                    ],
+                    "example": "ADMIN"
+                },
+                "user_password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "fossy"
                 }
             }
         }
