@@ -47,9 +47,39 @@ type LicenseDB struct {
 	Marydone        *bool                                        `json:"marydone" gorm:"column:marydone;not null;default:false"`
 	ExternalRef     datatypes.JSONType[LicenseDBSchemaExtension] `json:"external_ref"`
 	Obligations     []*Obligation                                `gorm:"many2many:obligation_licenses;" json:"obligations"`
+	UserId          int64                                        `json:"-" example:"123"`                             // Foreign key to User
+	User            User                                         `gorm:"foreignKey:UserId;references:Id" json:"user"` // Reference to User
 }
 
-func (l *LicenseDB) BeforeSave(tx *gorm.DB) (err error) {
+// BeforeCreate hook to validate data and log the user who is creating the record
+func (l *LicenseDB) BeforeCreate(tx *gorm.DB) (err error) {
+	username, ok := tx.Statement.Context.Value(ContextKey("user")).(string)
+	if !ok {
+		return errors.New("username not found in context")
+	}
+
+	var user User
+	if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+	l.UserId = user.Id
+
+	if err := validateLicenseFields(l); err != nil {
+		return err
+	}
+	return nil
+}
+
+// BeforeUpdate hook to validate data and log the user who is updating the record
+func (l *LicenseDB) BeforeUpdate(tx *gorm.DB) (err error) {
+	if err := validateLicenseFields(l); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Helper function to validate fields
+func validateLicenseFields(l *LicenseDB) error {
 	if l.Shortname != nil && *l.Shortname == "" {
 		return errors.New("shortname cannot be an empty string")
 	}
@@ -62,7 +92,7 @@ func (l *LicenseDB) BeforeSave(tx *gorm.DB) (err error) {
 	if l.SpdxId != nil && *l.SpdxId == "" {
 		return errors.New("spdx_id cannot be an empty string")
 	}
-	if l.Risk != nil && (*l.Risk < 0 && *l.Risk > 5) {
+	if l.Risk != nil && (*l.Risk < 0 || *l.Risk > 5) {
 		return errors.New("risk can have values from 0 to 5 only")
 	}
 	if l.Flag != nil && (*l.Flag < 0 || *l.Flag > 2) {
@@ -71,7 +101,7 @@ func (l *LicenseDB) BeforeSave(tx *gorm.DB) (err error) {
 	if l.DetectorType != nil && (*l.DetectorType < 0 || *l.DetectorType > 2) {
 		return errors.New("detector_type can have values from 0 to 2 only")
 	}
-	return
+	return nil
 }
 
 // LicenseUpdateJSONSchema struct represents the input format for updating an existing license.
@@ -99,6 +129,8 @@ type LicenseUpdateJSONSchema struct {
 	Marydone        *bool                                        `json:"marydone" example:"false"`
 	ExternalRef     datatypes.JSONType[LicenseDBSchemaExtension] `json:"external_ref"`
 	Obligations     []*Obligation                                `json:"obligations"`
+	UserId          int64                                        `json:"-" example:"123"` // Foreign key to User
+	User            User                                         `json:"-"`               // Reference to User
 }
 
 // UpdateExternalRefsJSONPayload struct represents the external ref key value pairs for update
@@ -394,7 +426,6 @@ func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {
 type ContextKey string
 
 func (o *Obligation) BeforeUpdate(tx *gorm.DB) (err error) {
-
 	oldObligation, ok := tx.Statement.Context.Value(ContextKey("oldObligation")).(*Obligation)
 	if !ok {
 		return errors.New("something went wrong")
