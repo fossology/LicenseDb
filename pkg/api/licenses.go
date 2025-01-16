@@ -7,6 +7,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -85,7 +86,7 @@ func FilterLicense(c *gin.Context) {
 	}
 
 	var licenses []models.LicenseDB
-	query := db.DB.Model(&licenses)
+	query := db.DB.Model(&licenses).Preload("User")
 
 	if active != "" {
 		parsedActive, err := strconv.ParseBool(active)
@@ -295,9 +296,13 @@ func CreateLicense(c *gin.Context) {
 		return
 	}
 
-	result := db.DB.
+	username := c.GetString("username")
+	ctx := context.WithValue(context.Background(), models.ContextKey("user"), username)
+
+	result := db.DB.WithContext(ctx).
 		Where(&models.LicenseDB{Shortname: input.Shortname}).
 		FirstOrCreate(&input)
+
 	if result.Error != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
@@ -348,6 +353,8 @@ func CreateLicense(c *gin.Context) {
 //	@Failure		500			{object}	models.LicenseError				"Failed to update license"
 //	@Security		ApiKeyAuth
 //	@Router			/licenses/{shortname} [patch]
+type ContextKey string
+
 func UpdateLicense(c *gin.Context) {
 	_ = db.DB.Transaction(func(tx *gorm.DB) error {
 		var updates models.LicenseUpdateJSONSchema
