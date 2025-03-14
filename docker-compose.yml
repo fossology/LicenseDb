@@ -13,6 +13,8 @@ services:
       DB_NAME: fossology
       POPULATE_DB: true
       GIN_MODE: debug
+    env_file:
+      - .env 
     ports:
       - 8080:8080
     depends_on:
