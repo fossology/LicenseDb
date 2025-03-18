@@ -722,7 +722,7 @@ func ImportLicenses(c *gin.Context) {
 //	@Router			/licenses/export [get]
 func ExportLicenses(c *gin.Context) {
 	var licenses []models.LicenseDB
-	query := db.DB.Model(&models.LicenseDB{})
+	query := db.DB.Preload("User").Model(&models.LicenseDB{})
 	err := query.Find(&licenses).Error
 	if err != nil {
 		er := models.LicenseError{
@@ -735,6 +735,37 @@ func ExportLicenses(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
+
+	// Map LicenseDB to LicenseExport DTO excluding Obligations
+	var exportLicenses []models.LicenseExport
+	for _, lic := range licenses {
+		exportLicenses = append(exportLicenses, models.LicenseExport{
+			Id:              lic.Id,
+			Shortname:       lic.Shortname,
+			Fullname:        lic.Fullname,
+			Text:            lic.Text,
+			Url:             lic.Url,
+			AddDate:         lic.AddDate,
+			Copyleft:        lic.Copyleft,
+			FSFfree:         lic.FSFfree,
+			OSIapproved:     lic.OSIapproved,
+			GPLv2compatible: lic.GPLv2compatible,
+			GPLv3compatible: lic.GPLv3compatible,
+			Notes:           lic.Notes,
+			Fedora:          lic.Fedora,
+			TextUpdatable:   lic.TextUpdatable,
+			DetectorType:    lic.DetectorType,
+			Active:          lic.Active,
+			Source:          lic.Source,
+			SpdxId:          lic.SpdxId,
+			Risk:            lic.Risk,
+			Flag:            lic.Flag,
+			Marydone:        lic.Marydone,
+			ExternalRef:     lic.ExternalRef,
+			UserId:          lic.UserId,
+			CreatedBy:       lic.User,
+		})
+	}
 	fileName := strings.Map(func(r rune) rune {
 		if r == '+' || r == ':' {
 			return '_'
@@ -743,7 +774,16 @@ func ExportLicenses(c *gin.Context) {
 	}, fmt.Sprintf("license-export-%s.json", time.Now().Format(time.RFC3339)))
 
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
-	c.JSON(http.StatusOK, &licenses)
+	// Marshal the export data
+	output, err := json.Marshal(exportLicenses)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to export licenses"})
+		return
+	}
+
+	// Write the JSON output
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write(output)
 }
 
 // GetAllLicensePreviews retrieves a list of shortnames of all licenses
