@@ -86,7 +86,7 @@ func FilterLicense(c *gin.Context) {
 	}
 
 	var licenses []models.LicenseDB
-	query := db.DB.Model(&licenses).Preload("User")
+	query := db.DB.Model(&licenses).Preload("User").Omit("Obligations")
 
 	if active != "" {
 		parsedActive, err := strconv.ParseBool(active)
