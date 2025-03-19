@@ -53,6 +53,64 @@ type LicenseDB struct {
 	User            User                                         `gorm:"foreignKey:UserId;references:Id" json:"user"` // Reference to User
 }
 
+// LicenseExport DTO excluding Obligations
+type LicenseExport struct {
+	Id              int64                                        `json:"id"`
+	Shortname       *string                                      `json:"shortname"`
+	Fullname        *string                                      `json:"fullname"`
+	Text            *string                                      `json:"text"`
+	Url             *string                                      `json:"url"`
+	AddDate         time.Time                                    `json:"add_date"`
+	Copyleft        *bool                                        `json:"copyleft"`
+	FSFfree         *bool                                        `json:"FSFfree"`
+	OSIapproved     *bool                                        `json:"OSIapproved"`
+	GPLv2compatible *bool                                        `json:"GPLv2compatible"`
+	GPLv3compatible *bool                                        `json:"GPLv3compatible"`
+	Notes           *string                                      `json:"notes"`
+	Fedora          *string                                      `json:"Fedora"`
+	TextUpdatable   *bool                                        `json:"text_updatable"`
+	DetectorType    *int64                                       `json:"detector_type"`
+	Active          *bool                                        `json:"active"`
+	Source          *string                                      `json:"source"`
+	SpdxId          *string                                      `json:"spdx_id"`
+	Risk            *int64                                       `json:"risk"`
+	Flag            *int64                                       `json:"flag"`
+	Marydone        *bool                                        `json:"marydone"`
+	ExternalRef     datatypes.JSONType[LicenseDBSchemaExtension] `json:"external_ref"`
+	UserId          int64                                        `json:"user_id"`
+	CreatedBy       User                                         `json:"created_by"`
+}
+
+// Convert LicenseDB to LicenseExport
+func (l *LicenseDB) ToLicenseExport() LicenseExport {
+	return LicenseExport{
+		Id:              l.Id,
+		Shortname:       l.Shortname,
+		Fullname:        l.Fullname,
+		Text:            l.Text,
+		Url:             l.Url,
+		AddDate:         l.AddDate,
+		Copyleft:        l.Copyleft,
+		FSFfree:         l.FSFfree,
+		OSIapproved:     l.OSIapproved,
+		GPLv2compatible: l.GPLv2compatible,
+		GPLv3compatible: l.GPLv3compatible,
+		Notes:           l.Notes,
+		Fedora:          l.Fedora,
+		TextUpdatable:   l.TextUpdatable,
+		DetectorType:    l.DetectorType,
+		Active:          l.Active,
+		Source:          l.Source,
+		SpdxId:          l.SpdxId,
+		Risk:            l.Risk,
+		Flag:            l.Flag,
+		Marydone:        l.Marydone,
+		ExternalRef:     l.ExternalRef,
+		UserId:          l.UserId,
+		CreatedBy:       l.User,
+	}
+}
+
 // BeforeCreate hook to validate data and log the user who is creating the record
 func (l *LicenseDB) BeforeCreate(tx *gorm.DB) (err error) {
 	username, ok := tx.Statement.Context.Value(ContextKey("user")).(string)

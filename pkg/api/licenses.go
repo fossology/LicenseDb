@@ -722,7 +722,7 @@ func ImportLicenses(c *gin.Context) {
 //	@Router			/licenses/export [get]
 func ExportLicenses(c *gin.Context) {
 	var licenses []models.LicenseDB
-	query := db.DB.Model(&models.LicenseDB{})
+	query := db.DB.Preload("User")
 	err := query.Find(&licenses).Error
 	if err != nil {
 		er := models.LicenseError{
@@ -735,6 +735,10 @@ func ExportLicenses(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
+	exportLicenses := make([]models.LicenseExport, len(licenses))
+	for i, lic := range licenses {
+		exportLicenses[i] = lic.ToLicenseExport()
+	}
 	fileName := strings.Map(func(r rune) rune {
 		if r == '+' || r == ':' {
 			return '_'
@@ -743,7 +747,7 @@ func ExportLicenses(c *gin.Context) {
 	}, fmt.Sprintf("license-export-%s.json", time.Now().Format(time.RFC3339)))
 
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
-	c.JSON(http.StatusOK, &licenses)
+	c.JSON(http.StatusOK, exportLicenses)
 }
 
 // GetAllLicensePreviews retrieves a list of shortnames of all licenses
