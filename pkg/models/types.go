@@ -55,6 +55,12 @@ type LicenseDB struct {
 
 // BeforeCreate hook to validate data and log the user who is creating the record
 func (l *LicenseDB) BeforeCreate(tx *gorm.DB) (err error) {
+
+	// If the license id is not 0, it means that the license is already present in the database
+	if l.Id != 0 {
+		return nil
+	}
+
 	username, ok := tx.Statement.Context.Value(ContextKey("user")).(string)
 	if !ok {
 		return errors.New("username not found in context")
