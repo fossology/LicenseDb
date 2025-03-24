@@ -95,7 +95,7 @@ func GetAudit(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Preload("User").Where(&models.Audit{Id: parsedId}).First(&audit).Error; err != nil {
+	if err := db.DB.Preload("User").Where("id = ?", parsedId).First(&audit).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   "no audit with such id exists",
@@ -145,7 +145,7 @@ func GetChangeLogs(c *gin.Context) {
 		return
 	}
 
-	result := db.DB.Where(models.ChangeLog{AuditId: parsedId}).Find(&changelog)
+	result := db.DB.Where("audit_id = ?", parsedId).Find(&changelog)
 	if result.Error != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
@@ -209,7 +209,7 @@ func GetChangeLogbyId(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Where(models.ChangeLog{Id: parsedChangeLogId}).Find(&changelog).Error; err != nil {
+	if err := db.DB.Where("id = ?", parsedChangeLogId).First(&changelog).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   "no change history with such id exists",
