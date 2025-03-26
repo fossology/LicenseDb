@@ -472,6 +472,18 @@ func UpdateLicense(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
+		// Preload the User relationship after the update
+		if err := tx.Preload("User").First(&newLicense, oldLicense.Id).Error; err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusInternalServerError,
+				Message:   "Failed to reload license with user details",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusInternalServerError, er)
+			return err
+		}
 
 		if err := utils.AddChangelogsForLicenseUpdate(tx, username, &newLicense, &oldLicense); err != nil {
 			er := models.LicenseError{
