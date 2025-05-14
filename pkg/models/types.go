@@ -61,7 +61,7 @@ func (l *LicenseDB) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	var user User
-	if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := tx.Where("user_name = ?", username).First(&user).Error; err != nil {
 		return errors.New("user not found")
 	}
 	l.User = User{}
@@ -252,16 +252,16 @@ type LicenseError struct {
 // User struct is representation of user information.
 type User struct {
 	Id           int64   `json:"id" gorm:"primary_key" example:"123"`
-	Username     *string `json:"username" gorm:"unique;not null" example:"fossy"`
+	UserName     *string `json:"username" gorm:"unique;not null" example:"fossy"`
 	DisplayName  *string `json:"display_name" gorm:"not null" example:"fossy"`
 	UserEmail    *string `json:"user_email" gorm:"unique;not null" example:"fossy@org.com"`
-	Userlevel    *string `json:"user_level" gorm:"not null" example:"USER"`
-	Userpassword *string `json:"-"`
+	UserLevel    *string `json:"user_level" gorm:"not null" example:"USER"`
+	UserPassword *string `json:"-"`
 	Active       *bool   `json:"-" gorm:"not null;default:true"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	if u.Username != nil && *u.Username == "" {
+	if u.UserName != nil && *u.UserName == "" {
 		return errors.New("username cannot be an empty string")
 	}
 	if u.DisplayName != nil && *u.DisplayName == "" {
@@ -270,14 +270,14 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.UserEmail != nil && *u.UserEmail == "" {
 		return errors.New("user email cannot be an empty string")
 	}
-	if u.Userlevel != nil && *u.Userlevel == "" {
+	if u.UserLevel != nil && *u.UserLevel == "" {
 		return errors.New("user level cannot be an empty string")
 	}
 	return
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
-	if u.Username != nil && *u.Username == "" {
+	if u.UserName != nil && *u.UserName == "" {
 		return errors.New("username cannot be an empty string")
 	}
 	if u.DisplayName != nil && *u.DisplayName == "" {
@@ -286,10 +286,10 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 	if u.UserEmail != nil && *u.UserEmail == "" {
 		return errors.New("user email cannot be an empty string")
 	}
-	if u.Userlevel != nil && *u.Userlevel == "" {
+	if u.UserLevel != nil && *u.UserLevel == "" {
 		return errors.New("user level cannot be an empty string")
 	}
-	if u.Userpassword != nil && *u.Userpassword == "" {
+	if u.UserPassword != nil && *u.UserPassword == "" {
 		return errors.New("user password cannot be an empty string")
 	}
 	return
@@ -297,31 +297,31 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 
 type UserCreate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"username" validate:"required" example:"fossy"`
+	UserName     *string `json:"username" validate:"required" example:"fossy"`
 	DisplayName  *string `json:"display_name" validate:"required" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"required,email" example:"fossy@org.com"`
-	Userlevel    *string `json:"user_level" validate:"required,oneof=USER ADMIN" example:"ADMIN"`
-	Userpassword *string `json:"user_password" example:"fossy"`
+	UserLevel    *string `json:"user_level" validate:"required,oneof=USER ADMIN" example:"ADMIN"`
+	UserPassword *string `json:"user_password" example:"fossy"`
 	Active       *bool   `json:"-"`
 }
 
 type UserUpdate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"username" example:"fossy"`
+	UserName     *string `json:"username" example:"fossy"`
 	DisplayName  *string `json:"display_name" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"omitempty,email"`
-	Userlevel    *string `json:"user_level" validate:"omitempty,oneof=USER ADMIN" example:"ADMIN"`
-	Userpassword *string `json:"user_password"`
+	UserLevel    *string `json:"user_level" validate:"omitempty,oneof=USER ADMIN" example:"ADMIN"`
+	UserPassword *string `json:"user_password"`
 	Active       *bool   `json:"active"`
 }
 
 type ProfileUpdate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"-"`
+	UserName     *string `json:"-"`
 	DisplayName  *string `json:"display_name" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"omitempty,email"`
-	Userlevel    *string `json:"-"`
-	Userpassword *string `json:"user_password"`
+	UserLevel    *string `json:"-"`
+	UserPassword *string `json:"user_password"`
 	Active       *bool   `json:"-"`
 }
 
