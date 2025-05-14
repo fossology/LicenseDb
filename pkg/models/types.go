@@ -33,12 +33,12 @@ type LicenseDB struct {
 	Url             *string                                      `json:"url" gorm:"column:rf_url;default:'';not null" example:"https://opensource.org/licenses/MIT"`
 	AddDate         time.Time                                    `json:"add_date" gorm:"default:CURRENT_TIMESTAMP;column:rf_add_date" example:"2023-12-01T18:10:25.00+05:30"`
 	Copyleft        *bool                                        `json:"copyleft" gorm:"column:rf_copyleft;not null;default:false"`
-	FSFfree         *bool                                        `json:"FSFfree" gorm:"column:rf_FSFfree;not null;default:false"`
-	OSIapproved     *bool                                        `json:"OSIapproved" gorm:"column:rf_OSIapproved;not null;default:false"`
-	GPLv2compatible *bool                                        `json:"GPLv2compatible" gorm:"column:rf_GPLv2compatible;not null;default:false"`
-	GPLv3compatible *bool                                        `json:"GPLv3compatible" gorm:"column:rf_GPLv3compatible;not null;default:false"`
+	FSFfree         *bool                                        `json:"FSFfree" gorm:"column:rf_fsffree;not null;default:false"`
+	OSIapproved     *bool                                        `json:"OSIapproved" gorm:"column:rf_osiapproved;not null;default:false"`
+	GPLv2compatible *bool                                        `json:"GPLv2compatible" gorm:"column:rf_gplv2compatible;not null;default:false"`
+	GPLv3compatible *bool                                        `json:"GPLv3compatible" gorm:"column:rf_gplv3compatible;not null;default:false"`
 	Notes           *string                                      `json:"notes" gorm:"column:rf_notes;not null;default:''" example:"This license has been superseded."`
-	Fedora          *string                                      `json:"Fedora" gorm:"column:rf_Fedora;not null;default:''"`
+	Fedora          *string                                      `json:"Fedora" gorm:"column:rf_fedora;not null;default:''"`
 	TextUpdatable   *bool                                        `json:"text_updatable" gorm:"column:rf_text_updatable;not null;default:false"`
 	DetectorType    *int64                                       `json:"detector_type" gorm:"column:rf_detector_type;not null;default:1" validate:"omitempty,min=0,max=2" example:"1"`
 	Active          *bool                                        `json:"active" gorm:"column:rf_active;not null;default:true"`
