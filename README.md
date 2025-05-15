@@ -98,6 +98,15 @@ go build ./cmd/laas
 cp .env.example .env
 vim .env
 ```
+- Database Migration
+
+    - Download [golang-migrate](https://github.com/golang-migrate/migrate/releases/tag/v4.18.3) (version **v4.18.3** or later).
+
+  - Run the migration files:
+
+    ```bash
+    migrate -path pkg/db/migrations -database "postgres://fossy:fossy@localhost:5432/licensedb?sslmode=disable" up
+    ```
 
 - Run the executable.
 
@@ -119,7 +128,7 @@ psql -h localhost -p 5432 -U fossy -d licensedb
 
 Run the following query to create the first user.
 ```sql
-INSERT INTO users (username, userpassword, userlevel, display_name, user_email) VALUES ('<username>', '<password>', 'SUPER_ADMIN', '<display_name>', '<user_email>');
+INSERT INTO users (user_name, user_password, user_level, display_name, user_email) VALUES ('<username>', '<password>', 'SUPER_ADMIN', '<display_name>', '<user_email>');
 ```
 
 ### Generating Swagger Documentation
