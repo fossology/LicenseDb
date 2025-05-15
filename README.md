@@ -57,10 +57,14 @@ As the response of the request, a JWT will be returned. Use this JWT with the
 `Authorization` header (as `-H "Authorization: <JWT>"`) to access endpoints
 requiring authentication.
 
+
 ## Prerequisite
 
-Please [install and set-up Golang](https://go.dev/doc/install) on your system
-in advance.
+Before proceeding, make sure you have the following installed on your system:
+
+- [Golang](https://go.dev/doc/install) – required to build and run the application.
+- [golang-migrate CLI](https://github.com/golang-migrate/migrate/releases/tag/v4.18.3) (version **v4.18.3** or later) – used to run database migration files.
+
 
 ## How to run this project?
 
@@ -98,15 +102,11 @@ go build ./cmd/laas
 cp .env.example .env
 vim .env
 ```
-- Database Migration
 
-    - Download [golang-migrate](https://github.com/golang-migrate/migrate/releases/tag/v4.18.3) (version **v4.18.3** or later).
-
-  - Run the migration files:
-
-    ```bash
-    migrate -path pkg/db/migrations -database "postgres://fossy:fossy@localhost:5432/licensedb?sslmode=disable" up
-    ```
+- Run the migration files.
+```bash
+migrate -path pkg/db/migrations -database "postgres://fossy:fossy@localhost:5432/licensedb?sslmode=disable" up
+```
 
 - Run the executable.
 
