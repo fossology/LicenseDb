@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS obligation_types (
+    id BIGSERIAL PRIMARY KEY,
+    type TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);
+

@@ -33,12 +33,12 @@ type LicenseDB struct {
 	Url             *string                                      `json:"url" gorm:"column:rf_url;default:'';not null" example:"https://opensource.org/licenses/MIT"`
 	AddDate         time.Time                                    `json:"add_date" gorm:"default:CURRENT_TIMESTAMP;column:rf_add_date" example:"2023-12-01T18:10:25.00+05:30"`
 	Copyleft        *bool                                        `json:"copyleft" gorm:"column:rf_copyleft;not null;default:false"`
-	FSFfree         *bool                                        `json:"FSFfree" gorm:"column:rf_FSFfree;not null;default:false"`
-	OSIapproved     *bool                                        `json:"OSIapproved" gorm:"column:rf_OSIapproved;not null;default:false"`
-	GPLv2compatible *bool                                        `json:"GPLv2compatible" gorm:"column:rf_GPLv2compatible;not null;default:false"`
-	GPLv3compatible *bool                                        `json:"GPLv3compatible" gorm:"column:rf_GPLv3compatible;not null;default:false"`
+	FSFfree         *bool                                        `json:"FSFfree" gorm:"column:rf_fsffree;not null;default:false"`
+	OSIapproved     *bool                                        `json:"OSIapproved" gorm:"column:rf_osiapproved;not null;default:false"`
+	GPLv2compatible *bool                                        `json:"GPLv2compatible" gorm:"column:rf_gplv2compatible;not null;default:false"`
+	GPLv3compatible *bool                                        `json:"GPLv3compatible" gorm:"column:rf_gplv3compatible;not null;default:false"`
 	Notes           *string                                      `json:"notes" gorm:"column:rf_notes;not null;default:''" example:"This license has been superseded."`
-	Fedora          *string                                      `json:"Fedora" gorm:"column:rf_Fedora;not null;default:''"`
+	Fedora          *string                                      `json:"Fedora" gorm:"column:rf_fedora;not null;default:''"`
 	TextUpdatable   *bool                                        `json:"text_updatable" gorm:"column:rf_text_updatable;not null;default:false"`
 	DetectorType    *int64                                       `json:"detector_type" gorm:"column:rf_detector_type;not null;default:1" validate:"omitempty,min=0,max=2" example:"1"`
 	Active          *bool                                        `json:"active" gorm:"column:rf_active;not null;default:true"`
@@ -61,7 +61,7 @@ func (l *LicenseDB) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	var user User
-	if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := tx.Where("user_name = ?", username).First(&user).Error; err != nil {
 		return errors.New("user not found")
 	}
 	l.User = User{}
@@ -251,17 +251,17 @@ type LicenseError struct {
 
 // User struct is representation of user information.
 type User struct {
-	Id           int64   `json:"id" gorm:"primary_key" example:"123"`
-	Username     *string `json:"username" gorm:"unique;not null" example:"fossy"`
-	DisplayName  *string `json:"display_name" gorm:"not null" example:"fossy"`
-	UserEmail    *string `json:"user_email" gorm:"unique;not null" example:"fossy@org.com"`
-	Userlevel    *string `json:"user_level" gorm:"not null" example:"USER"`
-	Userpassword *string `json:"-"`
-	Active       *bool   `json:"-" gorm:"not null;default:true"`
+	Id           int64   `json:"id" gorm:"primary_key;column:id" example:"123"`
+	UserName     *string `json:"user_name" gorm:"unique;not null;column:user_name" example:"fossy"`
+	DisplayName  *string `json:"display_name" gorm:"not null;column:display_name" example:"fossy"`
+	UserEmail    *string `json:"user_email" gorm:"unique;not null;column:user_email" example:"fossy@org.com"`
+	UserLevel    *string `json:"user_level" gorm:"not null;column:user_level" example:"USER"`
+	UserPassword *string `json:"-" gorm:"column:user_password"`
+	Active       *bool   `json:"-" gorm:"not null;default:true;column:active"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	if u.Username != nil && *u.Username == "" {
+	if u.UserName != nil && *u.UserName == "" {
 		return errors.New("username cannot be an empty string")
 	}
 	if u.DisplayName != nil && *u.DisplayName == "" {
@@ -270,14 +270,14 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.UserEmail != nil && *u.UserEmail == "" {
 		return errors.New("user email cannot be an empty string")
 	}
-	if u.Userlevel != nil && *u.Userlevel == "" {
+	if u.UserLevel != nil && *u.UserLevel == "" {
 		return errors.New("user level cannot be an empty string")
 	}
 	return
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
-	if u.Username != nil && *u.Username == "" {
+	if u.UserName != nil && *u.UserName == "" {
 		return errors.New("username cannot be an empty string")
 	}
 	if u.DisplayName != nil && *u.DisplayName == "" {
@@ -286,10 +286,10 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 	if u.UserEmail != nil && *u.UserEmail == "" {
 		return errors.New("user email cannot be an empty string")
 	}
-	if u.Userlevel != nil && *u.Userlevel == "" {
+	if u.UserLevel != nil && *u.UserLevel == "" {
 		return errors.New("user level cannot be an empty string")
 	}
-	if u.Userpassword != nil && *u.Userpassword == "" {
+	if u.UserPassword != nil && *u.UserPassword == "" {
 		return errors.New("user password cannot be an empty string")
 	}
 	return
@@ -297,31 +297,31 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 
 type UserCreate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"username" validate:"required" example:"fossy"`
+	UserName     *string `json:"user_name" validate:"required" example:"fossy"`
 	DisplayName  *string `json:"display_name" validate:"required" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"required,email" example:"fossy@org.com"`
-	Userlevel    *string `json:"user_level" validate:"required,oneof=USER ADMIN" example:"ADMIN"`
-	Userpassword *string `json:"user_password" example:"fossy"`
+	UserLevel    *string `json:"user_level" validate:"required,oneof=USER ADMIN" example:"ADMIN"`
+	UserPassword *string `json:"user_password" example:"fossy"`
 	Active       *bool   `json:"-"`
 }
 
 type UserUpdate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"username" example:"fossy"`
+	UserName     *string `json:"user_name" example:"fossy"`
 	DisplayName  *string `json:"display_name" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"omitempty,email"`
-	Userlevel    *string `json:"user_level" validate:"omitempty,oneof=USER ADMIN" example:"ADMIN"`
-	Userpassword *string `json:"user_password"`
+	UserLevel    *string `json:"user_level" validate:"omitempty,oneof=USER ADMIN" example:"ADMIN"`
+	UserPassword *string `json:"user_password"`
 	Active       *bool   `json:"active"`
 }
 
 type ProfileUpdate struct {
 	Id           int64   `json:"-"`
-	Username     *string `json:"-"`
+	UserName     *string `json:"-"`
 	DisplayName  *string `json:"display_name" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"omitempty,email"`
-	Userlevel    *string `json:"-"`
-	Userpassword *string `json:"user_password"`
+	UserLevel    *string `json:"-"`
+	UserPassword *string `json:"user_password"`
 	Active       *bool   `json:"-"`
 }
 
@@ -347,12 +347,12 @@ type SearchLicense struct {
 // Audit struct represents an audit entity with certain attributes and properties
 // It has user id as a foreign key
 type Audit struct {
-	Id         int64       `json:"id" gorm:"primary_key" example:"456"`
-	UserId     int64       `json:"user_id" example:"123"`
+	Id         int64       `json:"id" gorm:"primary_key;column:id" example:"456"`
+	UserId     int64       `json:"user_id" gorm:"column:user_id" example:"123"`
 	User       User        `gorm:"foreignKey:UserId;references:Id" json:"user"`
-	Timestamp  time.Time   `json:"timestamp" example:"2023-12-01T18:10:25.00+05:30"`
-	Type       string      `json:"type" enums:"obligation,license" example:"license"`
-	TypeId     int64       `json:"type_id" example:"34"`
+	Timestamp  time.Time   `json:"timestamp" gorm:"column:timestamp" example:"2023-12-01T18:10:25.00+05:30"`
+	Type       string      `json:"type" gorm:"column:type" enums:"obligation,license" example:"license"`
+	TypeId     int64       `json:"type_id" gorm:"column:type_id" example:"34"`
 	Entity     interface{} `json:"entity" gorm:"-" swaggertype:"object"`
 	ChangeLogs []ChangeLog `json:"-"`
 }
@@ -412,20 +412,20 @@ type ObligationClassificationResponse struct {
 
 // Obligation represents an obligation record in the database.
 type Obligation struct {
-	Id                         int64                     `gorm:"primary_key"`
-	Topic                      *string                   `gorm:"unique;not null"`
-	Text                       *string                   `gorm:"not null"`
-	Modifications              *bool                     `gorm:"not null;default:false"`
-	Comment                    *string                   `gorm:"not null;default:''"`
-	Active                     *bool                     `gorm:"not null;default:true"`
-	TextUpdatable              *bool                     `gorm:"not null;default:false"`
-	Md5                        string                    `gorm:"unique;not null"`
-	ObligationClassificationId int64                     `gorm:"not null"`
-	ObligationTypeId           int64                     `gorm:"not null"`
+	Id                         int64                     `gorm:"primary_key;column:id" `
+	Topic                      *string                   `gorm:"unique;not null;column:topic"`
+	Text                       *string                   `gorm:"not null;column:text"`
+	Modifications              *bool                     `gorm:"not null;default:false;column:modifications"`
+	Comment                    *string                   `gorm:"not null;column:comment;default:''"`
+	Active                     *bool                     `gorm:"not null;default:true;column:active"`
+	TextUpdatable              *bool                     `gorm:"not null;default:false;column:text_updatable"`
+	Md5                        string                    `gorm:"unique;not null;column:md5"`
+	ObligationClassificationId int64                     `gorm:"not null ;column:obligation_classification_id"`
+	ObligationTypeId           int64                     `gorm:"not null;column:obligation_type_id"`
 	Licenses                   []*LicenseDB              `gorm:"many2many:obligation_licenses;"`
 	Type                       *ObligationType           `gorm:"foreignKey:ObligationTypeId"`
 	Classification             *ObligationClassification `gorm:"foreignKey:ObligationClassificationId"`
-	Category                   *string                   `json:"category" gorm:"default:GENERAL" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
+	Category                   *string                   `json:"category" gorm:"default:GENERAL;column:category" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
 }
 
 var validCategories = []string{"DISTRIBUTION", "PATENT", "INTERNAL", "CONTRACTUAL", "EXPORT_CONTROL", "GENERAL"}
