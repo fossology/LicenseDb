@@ -297,7 +297,7 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 
 type UserCreate struct {
 	Id           int64   `json:"-"`
-	UserName     *string `json:"username" validate:"required" example:"fossy"`
+	UserName     *string `json:"user_name" validate:"required" example:"fossy"`
 	DisplayName  *string `json:"display_name" validate:"required" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"required,email" example:"fossy@org.com"`
 	UserLevel    *string `json:"user_level" validate:"required,oneof=USER ADMIN" example:"ADMIN"`
@@ -307,7 +307,7 @@ type UserCreate struct {
 
 type UserUpdate struct {
 	Id           int64   `json:"-"`
-	UserName     *string `json:"username" example:"fossy"`
+	UserName     *string `json:"user_name" example:"fossy"`
 	DisplayName  *string `json:"display_name" example:"fossy"`
 	UserEmail    *string `json:"user_email" validate:"omitempty,email"`
 	UserLevel    *string `json:"user_level" validate:"omitempty,oneof=USER ADMIN" example:"ADMIN"`
@@ -412,20 +412,20 @@ type ObligationClassificationResponse struct {
 
 // Obligation represents an obligation record in the database.
 type Obligation struct {
-	Id                         int64                     `gorm:"primary_key"`
-	Topic                      *string                   `gorm:"unique;not null"`
-	Text                       *string                   `gorm:"not null"`
-	Modifications              *bool                     `gorm:"not null;default:false"`
-	Comment                    *string                   `gorm:"not null;default:''"`
-	Active                     *bool                     `gorm:"not null;default:true"`
-	TextUpdatable              *bool                     `gorm:"not null;default:false"`
-	Md5                        string                    `gorm:"unique;not null"`
-	ObligationClassificationId int64                     `gorm:"not null"`
-	ObligationTypeId           int64                     `gorm:"not null"`
+	Id                         int64                     `gorm:"primary_key;column:id" `
+	Topic                      *string                   `gorm:"unique;not null;column:topic"`
+	Text                       *string                   `gorm:"not null;column:text"`
+	Modifications              *bool                     `gorm:"not null;default:false;column:modifications"`
+	Comment                    *string                   `gorm:"not null;column:comment;default:''"`
+	Active                     *bool                     `gorm:"not null;default:true;column:active"`
+	TextUpdatable              *bool                     `gorm:"not null;default:false;column:text_updatable"`
+	Md5                        string                    `gorm:"unique;not null;column:md5"`
+	ObligationClassificationId int64                     `gorm:"not null ;column:obligation_classification_id"`
+	ObligationTypeId           int64                     `gorm:"not null;column:obligation_type_id"`
 	Licenses                   []*LicenseDB              `gorm:"many2many:obligation_licenses;"`
 	Type                       *ObligationType           `gorm:"foreignKey:ObligationTypeId"`
 	Classification             *ObligationClassification `gorm:"foreignKey:ObligationClassificationId"`
-	Category                   *string                   `json:"category" gorm:"default:GENERAL" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
+	Category                   *string                   `json:"category" gorm:"default:GENERAL;column:category" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
 }
 
 var validCategories = []string{"DISTRIBUTION", "PATENT", "INTERNAL", "CONTRACTUAL", "EXPORT_CONTROL", "GENERAL"}
