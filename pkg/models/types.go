@@ -251,13 +251,13 @@ type LicenseError struct {
 
 // User struct is representation of user information.
 type User struct {
-	Id           int64   `json:"id" gorm:"primary_key" example:"123"`
-	UserName     *string `json:"username" gorm:"unique;not null" example:"fossy"`
-	DisplayName  *string `json:"display_name" gorm:"not null" example:"fossy"`
-	UserEmail    *string `json:"user_email" gorm:"unique;not null" example:"fossy@org.com"`
-	UserLevel    *string `json:"user_level" gorm:"not null" example:"USER"`
-	UserPassword *string `json:"-"`
-	Active       *bool   `json:"-" gorm:"not null;default:true"`
+	Id           int64   `json:"id" gorm:"primary_key;column:id" example:"123"`
+	UserName     *string `json:"user_name" gorm:"unique;not null;column:user_name" example:"fossy"`
+	DisplayName  *string `json:"display_name" gorm:"not null;column:display_name" example:"fossy"`
+	UserEmail    *string `json:"user_email" gorm:"unique;not null;column:user_email" example:"fossy@org.com"`
+	UserLevel    *string `json:"user_level" gorm:"not null;column:user_level" example:"USER"`
+	UserPassword *string `json:"-" gorm:"column:user_password"`
+	Active       *bool   `json:"-" gorm:"not null;default:true;column:active"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

@@ -12,11 +12,3 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT uni_users_user_email UNIQUE (user_email)
 );
 
--- Foreign keys that reference `users` (optional to include here if other tables will use this later)
--- These should be part of the referencing table definitions:
--- For example:
--- CREATE TABLE audits (
---   ...
---   user_id BIGINT,
---   CONSTRAINT fk_audits_user FOREIGN KEY (user_id) REFERENCES users(id)
--- );
