@@ -166,10 +166,8 @@ func CreateObligation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
-	username := c.GetString("username")
-	ctx := context.WithValue(context.Background(), models.ContextKey("user"), username)
 
-	result := db.DB.WithContext(ctx).
+	result := db.DB.
 		Where(&models.Obligation{Topic: obligation.Topic}).
 		Or(&models.Obligation{Md5: obligation.Md5}).
 		FirstOrCreate(&obligation)
