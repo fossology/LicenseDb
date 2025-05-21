@@ -27,5 +27,4 @@ CREATE TABLE IF NOT EXISTS license_dbs (
    
     CONSTRAINT fk_license_dbs_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT uq_license_dbs_shortname UNIQUE (rf_shortname)
-+
 );

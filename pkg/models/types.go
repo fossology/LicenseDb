@@ -347,12 +347,12 @@ type SearchLicense struct {
 // Audit struct represents an audit entity with certain attributes and properties
 // It has user id as a foreign key
 type Audit struct {
-	Id         int64       `json:"id" gorm:"primary_key" example:"456"`
-	UserId     int64       `json:"user_id" example:"123"`
+	Id         int64       `json:"id" gorm:"primary_key;column:id" example:"456"`
+	UserId     int64       `json:"user_id" gorm:"column:user_id" example:"123"`
 	User       User        `gorm:"foreignKey:UserId;references:Id" json:"user"`
-	Timestamp  time.Time   `json:"timestamp" example:"2023-12-01T18:10:25.00+05:30"`
-	Type       string      `json:"type" enums:"obligation,license" example:"license"`
-	TypeId     int64       `json:"type_id" example:"34"`
+	Timestamp  time.Time   `json:"timestamp" gorm:"column:timestamp" example:"2023-12-01T18:10:25.00+05:30"`
+	Type       string      `json:"type" gorm:"column:type" enums:"obligation,license" example:"license"`
+	TypeId     int64       `json:"type_id" gorm:"column:type_id" example:"34"`
 	Entity     interface{} `json:"entity" gorm:"-" swaggertype:"object"`
 	ChangeLogs []ChangeLog `json:"-"`
 }
