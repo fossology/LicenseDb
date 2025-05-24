@@ -35,27 +35,13 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "no credentials were passed",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
+			unauthorized(c, "no credentials were passed")
 			c.Abort()
 			return
 		}
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 {
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "no credentials were passed",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
+			unauthorized(c, "no credentials were passed")
 			c.Abort()
 			return
 		}
@@ -65,14 +51,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		case "bearer":
 			unverfiedParsedToken, err := jwt.Parse([]byte(tokenString), jwt.WithVerify(false), jwt.WithValidate(true))
 			if err != nil {
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "token parsing failed",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
+				unauthorized(c, "token parsing failed")
 				c.Abort()
 				return
 			}
@@ -82,14 +61,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				_, err := jws.Verify([]byte(tokenString), jws.WithKey(jwa.HS256(), []byte(os.Getenv("API_SECRET"))))
 				if err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "token verification failed",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "token verification failed")
 					c.Abort()
 					return
 				}
@@ -97,14 +69,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				var userData map[string]interface{}
 				if err = unverfiedParsedToken.Get("user", &userData); err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "incompatible token format",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "incompatible token format")
 					c.Abort()
 					return
 				}
@@ -112,14 +77,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				userDataBytes, err := json.Marshal(userData)
 				if err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "failed to marshal user data",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "failed to marshal user data")
 					c.Abort()
 					return
 				}
@@ -129,28 +87,14 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				err = json.Unmarshal(userDataBytes, &user)
 				if err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "incompatible token format",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "incompatible token format")
 					c.Abort()
 					return
 				}
 
 				if err := db.DB.Where(models.User{Id: user.Id}).First(&user).Error; err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "User not found. Please check your credentials.",
-						Error:     err.Error(),
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					respondWithError(c, http.StatusUnauthorized, "User not found. Please check your credentials.", err.Error())
 					c.Abort()
 					return
 				}
@@ -159,14 +103,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 			} else if iss == os.Getenv("OIDC_ISSUER") {
 				if auth.Jwks == nil || os.Getenv("OIDC_USERNAME_KEY") == "" {
 					log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
-					er := models.LicenseError{
-						Status:    http.StatusInternalServerError,
-						Message:   "Something went wrong",
-						Error:     "internal server error",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusInternalServerError, er)
+					respondWithError(c, http.StatusInternalServerError, "Something went wrong", "OIDC environment variables not configured properly")
 					c.Abort()
 					return
 				}
@@ -174,14 +111,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				keyset, err := auth.Jwks.Lookup(context.Background(), os.Getenv("JWKS_URI"))
 				if err != nil {
 					log.Print("\033[31mError: Failed jwk.Cache lookup from the oidc provider's URL\033[0m")
-					er := models.LicenseError{
-						Status:    http.StatusInternalServerError,
-						Message:   "Something went wrong",
-						Error:     "internal server error",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusInternalServerError, er)
+					respondWithError(c, http.StatusInternalServerError, "Something went wrong", "internal server error")
 					c.Abort()
 					return
 				}
@@ -204,28 +134,14 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 
 				if keyError {
 					log.Printf("\033[31mError: Token verification failed due to invalid alg header key field \033[0m")
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "token verification failed",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "token verification failed")
 					c.Abort()
 					return
 				}
 
 				if _, err = jws.Verify([]byte(tokenString), keyOptions); err != nil {
 					log.Printf("\033[31mError: Token verification failed \033[0m")
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "token verification failed",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "token verification failed")
 					c.Abort()
 					return
 				}
@@ -233,18 +149,10 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				var username string
 				if err = unverfiedParsedToken.Get(os.Getenv("OIDC_USERNAME_KEY"), &username); err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
-					er := models.LicenseError{
-						Status:    http.StatusUnauthorized,
-						Message:   "Please check your credentials and try again",
-						Error:     "incompatible token format",
-						Path:      c.Request.URL.Path,
-						Timestamp: time.Now().Format(time.RFC3339),
-					}
-					c.JSON(http.StatusUnauthorized, er)
+					unauthorized(c, "incompatible token format")
 					c.Abort()
 					return
 				}
-
 				var user models.User
 				if err := db.DB.Where(models.User{Username: &username}).First(&user).Error; err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
@@ -264,14 +172,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				c.Set("role", *user.Userlevel)
 			} else {
 				log.Printf("\033[31mError: Issuer '%s' not supported or not configured in .env\033[0m", iss)
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "internal server error",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
+				unauthorized(c, "issuer not supported or not configured in .env")
 				c.Abort()
 				return
 			}
@@ -300,15 +201,8 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 
 			er := auth.EncryptUserPassword(&user)
 			if er != nil {
-				er := models.LicenseError{
-					Status:    http.StatusInternalServerError,
-					Message:   "Failed to encrypt user password",
-					Error:     er.Error(),
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-
-				c.JSON(http.StatusInternalServerError, er)
+				respondWithError(c, http.StatusInternalServerError, "Failed to encrypt user password", er.Error())
+				c.Abort()
 				return
 			}
 			if err := utils.VerifyPassword(password, *user.Userpassword); err != nil {
@@ -340,14 +234,7 @@ func RoleBasedAccessMiddleware(roles []string) gin.HandlerFunc {
 		}
 		if !found {
 			log.Print("\033[31mError: access denied due to insufficient role permissions\033[0m")
-			er := models.LicenseError{
-				Status:    http.StatusForbidden,
-				Message:   "You do not have the necessary permissions to access this resource",
-				Error:     "access denied due to insufficient role permissions",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusForbidden, er)
+			respondWithError(c, http.StatusForbidden, "You do not have the necessary permissions to access this resource", "access denied due to insufficient role permissions")
 			c.Abort()
 			return
 		}
@@ -514,6 +401,17 @@ func unauthorized(c *gin.Context, msg string) {
 		Status:    http.StatusUnauthorized,
 		Message:   "Please check your credentials and try again",
 		Error:     msg,
+		Path:      c.Request.URL.Path,
+		Timestamp: time.Now().Format(time.RFC3339),
+	})
+	c.Abort()
+}
+
+func respondWithError(c *gin.Context, status int, errMsg, detail string) {
+	c.JSON(status, models.LicenseError{
+		Status:    status,
+		Message:   errMsg,
+		Error:     detail,
 		Path:      c.Request.URL.Path,
 		Timestamp: time.Now().Format(time.RFC3339),
 	})
