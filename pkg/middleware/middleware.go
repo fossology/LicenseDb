@@ -9,6 +9,7 @@ package middleware
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -34,246 +35,189 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "no credentials were passed",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
+			unauthorized(c, "no credentials were passed")
 			c.Abort()
 			return
 		}
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "no credentials were passed",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
+		if len(parts) != 2 {
+			unauthorized(c, "no credentials were passed")
 			c.Abort()
 			return
 		}
-
 		tokenString := parts[1]
-
-		unverfiedParsedToken, err := jwt.Parse([]byte(tokenString), jwt.WithVerify(false), jwt.WithValidate(true))
-		if err != nil {
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "token parsing failed",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
-			c.Abort()
-			return
-		}
-
-		iss, _ := unverfiedParsedToken.Issuer()
-		if iss == os.Getenv("DEFAULT_ISSUER") {
-			_, err := jws.Verify([]byte(tokenString), jws.WithKey(jwa.HS256(), []byte(os.Getenv("API_SECRET"))))
+		scheme := strings.ToLower(parts[0])
+		switch scheme {
+		case "bearer":
+			unverfiedParsedToken, err := jwt.Parse([]byte(tokenString), jwt.WithVerify(false), jwt.WithValidate(true))
 			if err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "token verification failed",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
+				unauthorized(c, "token parsing failed")
 				c.Abort()
 				return
 			}
 
-			var userData map[string]interface{}
-			if err = unverfiedParsedToken.Get("user", &userData); err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "incompatible token format",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+			iss, _ := unverfiedParsedToken.Issuer()
+			if iss == os.Getenv("DEFAULT_ISSUER") {
+				_, err := jws.Verify([]byte(tokenString), jws.WithKey(jwa.HS256(), []byte(os.Getenv("API_SECRET"))))
+				if err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					unauthorized(c, "token verification failed")
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
-			}
 
-			userDataBytes, err := json.Marshal(userData)
-			if err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "failed to marshal user data",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+				var userData map[string]interface{}
+				if err = unverfiedParsedToken.Get("user", &userData); err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					unauthorized(c, "incompatible token format")
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
-			}
 
-			// Unmarshal the JSON bytes into the models.User struct
-			var user models.User
-			err = json.Unmarshal(userDataBytes, &user)
-			if err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "incompatible token format",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+				userDataBytes, err := json.Marshal(userData)
+				if err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					unauthorized(c, "failed to marshal user data")
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
-			}
 
-			if err := db.DB.Where(models.User{Id: user.Id}).First(&user).Error; err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "User not found. Please check your credentials.",
-					Error:     err.Error(),
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+				// Unmarshal the JSON bytes into the models.User struct
+				var user models.User
+				err = json.Unmarshal(userDataBytes, &user)
+				if err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					unauthorized(c, "incompatible token format")
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
-			}
-			c.Set("username", *user.Username)
-			c.Set("role", *user.Userlevel)
-		} else if iss == os.Getenv("OIDC_ISSUER") {
-			if auth.Jwks == nil || os.Getenv("OIDC_USERNAME_KEY") == "" {
-				log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
-				er := models.LicenseError{
-					Status:    http.StatusInternalServerError,
-					Message:   "Something went wrong",
-					Error:     "internal server error",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusInternalServerError, er)
-				c.Abort()
-				return
-			}
 
-			keyset, err := auth.Jwks.Lookup(context.Background(), os.Getenv("JWKS_URI"))
-			if err != nil {
-				log.Print("\033[31mError: Failed jwk.Cache lookup from the oidc provider's URL\033[0m")
-				er := models.LicenseError{
-					Status:    http.StatusInternalServerError,
-					Message:   "Something went wrong",
-					Error:     "internal server error",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+				if err := db.DB.Where(models.User{Id: user.Id}).First(&user).Error; err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					respondWithError(c, http.StatusUnauthorized, "User not found. Please check your credentials.", err.Error())
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusInternalServerError, er)
-				c.Abort()
-				return
-			}
+				c.Set("username", *user.Username)
+				c.Set("role", *user.Userlevel)
+			} else if iss == os.Getenv("OIDC_ISSUER") {
+				if auth.Jwks == nil || os.Getenv("OIDC_USERNAME_KEY") == "" {
+					log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
+					respondWithError(c, http.StatusInternalServerError, "Something went wrong", "OIDC environment variables not configured properly")
+					c.Abort()
+					return
+				}
 
-			keyOptions := jws.WithKeySet(keyset)
-			keyError := true
-			if kid, err := utils.GetKid(tokenString); err == nil {
-				if key, ok := keyset.LookupKeyID(kid); ok {
-					if os.Getenv("OIDC_SIGNING_ALG") != "" {
-						if alg, ok := jwa.LookupSignatureAlgorithm(os.Getenv("OIDC_SIGNING_ALG")); ok {
-							if err = key.Set("alg", alg); err == nil {
-								keyError = false
+				keyset, err := auth.Jwks.Lookup(context.Background(), os.Getenv("JWKS_URI"))
+				if err != nil {
+					log.Print("\033[31mError: Failed jwk.Cache lookup from the oidc provider's URL\033[0m")
+					respondWithError(c, http.StatusInternalServerError, "Something went wrong", "internal server error")
+					c.Abort()
+					return
+				}
+
+				keyOptions := jws.WithKeySet(keyset)
+				keyError := true
+				if kid, err := utils.GetKid(tokenString); err == nil {
+					if key, ok := keyset.LookupKeyID(kid); ok {
+						if os.Getenv("OIDC_SIGNING_ALG") != "" {
+							if alg, ok := jwa.LookupSignatureAlgorithm(os.Getenv("OIDC_SIGNING_ALG")); ok {
+								if err = key.Set("alg", alg); err == nil {
+									keyError = false
+								}
 							}
+						} else if _, ok := key.Algorithm(); ok {
+							keyError = false
 						}
-					} else if _, ok := key.Algorithm(); ok {
-						keyError = false
 					}
 				}
-			}
 
-			if keyError {
-				log.Printf("\033[31mError: Token verification failed due to invalid alg header key field \033[0m")
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "token verification failed",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+				if keyError {
+					log.Printf("\033[31mError: Token verification failed due to invalid alg header key field \033[0m")
+					unauthorized(c, "token verification failed")
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
+
+				if _, err = jws.Verify([]byte(tokenString), keyOptions); err != nil {
+					log.Printf("\033[31mError: Token verification failed \033[0m")
+					unauthorized(c, "token verification failed")
+					c.Abort()
+					return
+				}
+
+				var username string
+				if err = unverfiedParsedToken.Get(os.Getenv("OIDC_USERNAME_KEY"), &username); err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					unauthorized(c, "incompatible token format")
+					c.Abort()
+					return
+				}
+				var user models.User
+				if err := db.DB.Where(models.User{Username: &username}).First(&user).Error; err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					er := models.LicenseError{
+						Status:    http.StatusUnauthorized,
+						Message:   "User not found",
+						Error:     err.Error(),
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					}
+					c.JSON(http.StatusUnauthorized, er)
+					c.Abort()
+					return
+				}
+
+				c.Set("username", *user.Username)
+				c.Set("role", *user.Userlevel)
+			} else {
+				log.Printf("\033[31mError: Issuer '%s' not supported or not configured in .env\033[0m", iss)
+				unauthorized(c, "issuer not supported or not configured in .env")
 				c.Abort()
 				return
 			}
+			c.Next()
 
-			if _, err = jws.Verify([]byte(tokenString), keyOptions); err != nil {
-				log.Printf("\033[31mError: Token verification failed \033[0m")
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "token verification failed",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
+		case "basic":
+			decoded, err := base64.StdEncoding.DecodeString(tokenString)
+			if err != nil {
+				unauthorized(c, "invalid base64 in basic auth")
 				return
 			}
 
-			var username string
-			if err = unverfiedParsedToken.Get(os.Getenv("OIDC_USERNAME_KEY"), &username); err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "incompatible token format",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
+			creds := strings.SplitN(string(decoded), ":", 2)
+			if len(creds) != 2 {
+				unauthorized(c, "invalid basic auth format")
 				return
 			}
+
+			username, password := creds[0], creds[1]
 
 			var user models.User
-			if err := db.DB.Where(models.User{Username: &username}).First(&user).Error; err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "User not found",
-					Error:     err.Error(),
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
-				}
-				c.JSON(http.StatusUnauthorized, er)
+			if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+				unauthorized(c, "user not found")
+				return
+			}
+
+			er := auth.EncryptUserPassword(&user)
+			if er != nil {
+				respondWithError(c, http.StatusInternalServerError, "Failed to encrypt user password", er.Error())
 				c.Abort()
+				return
+			}
+			if err := utils.VerifyPassword(password, *user.Userpassword); err != nil {
+				unauthorized(c, "invalid username or password")
 				return
 			}
 
 			c.Set("username", *user.Username)
 			c.Set("role", *user.Userlevel)
-		} else {
-			log.Printf("\033[31mError: Issuer '%s' not supported or not configured in .env\033[0m", iss)
-			er := models.LicenseError{
-				Status:    http.StatusUnauthorized,
-				Message:   "Please check your credentials and try again",
-				Error:     "internal server error",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusUnauthorized, er)
-			c.Abort()
+			c.Next()
+
+		default:
+			unauthorized(c, "unsupported auth scheme")
 			return
 		}
-		c.Next()
 	}
 }
 
@@ -290,14 +234,7 @@ func RoleBasedAccessMiddleware(roles []string) gin.HandlerFunc {
 		}
 		if !found {
 			log.Print("\033[31mError: access denied due to insufficient role permissions\033[0m")
-			er := models.LicenseError{
-				Status:    http.StatusForbidden,
-				Message:   "You do not have the necessary permissions to access this resource",
-				Error:     "access denied due to insufficient role permissions",
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusForbidden, er)
+			respondWithError(c, http.StatusForbidden, "You do not have the necessary permissions to access this resource", "access denied due to insufficient role permissions")
 			c.Abort()
 			return
 		}
@@ -457,4 +394,26 @@ type bodyWriter struct {
 // Write is a custom write function to capture and process response body.
 func (w bodyWriter) Write(b []byte) (int, error) {
 	return w.body.Write(b)
+}
+
+func unauthorized(c *gin.Context, msg string) {
+	c.JSON(http.StatusUnauthorized, models.LicenseError{
+		Status:    http.StatusUnauthorized,
+		Message:   "Please check your credentials and try again",
+		Error:     msg,
+		Path:      c.Request.URL.Path,
+		Timestamp: time.Now().Format(time.RFC3339),
+	})
+	c.Abort()
+}
+
+func respondWithError(c *gin.Context, status int, errMsg, detail string) {
+	c.JSON(status, models.LicenseError{
+		Status:    status,
+		Message:   errMsg,
+		Error:     detail,
+		Path:      c.Request.URL.Path,
+		Timestamp: time.Now().Format(time.RFC3339),
+	})
+	c.Abort()
 }
