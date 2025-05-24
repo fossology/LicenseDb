@@ -47,6 +47,7 @@ func makeRequest(method, path string, body interface{}, isAuthanticated bool) *h
 	Router().ServeHTTP(w, req)
 	return w
 }
+
 func TestGetLicense(t *testing.T) {
 	expectLicense := models.LicenseDB{
 		Shortname:     func(s string) *string { return &s }("MIT"),
