@@ -62,6 +62,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		tokenString := parts[1]
 		scheme := strings.ToLower(parts[0])
 		switch scheme {
+		// bearer auth for production and oidc
 		case "bearer":
 			unverfiedParsedToken, err := jwt.Parse([]byte(tokenString), jwt.WithVerify(false), jwt.WithValidate(true))
 			if err != nil {
@@ -276,7 +277,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				return
 			}
 			c.Next()
-
+			// basic auth for testing purposes
 		case "basic":
 			decoded, err := base64.StdEncoding.DecodeString(tokenString)
 			if err != nil {
@@ -293,7 +294,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 			username, password := creds[0], creds[1]
 
 			var user models.User
-			if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+			if err := db.DB.Where(&models.User{UserName: &username}).First(&user).Error; err != nil {
 				unauthorized(c, "user not found")
 				return
 			}
@@ -319,7 +320,6 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 			c.Set("username", *user.UserName)
 			c.Set("role", *user.UserLevel)
 			c.Next()
-
 		default:
 			unauthorized(c, "unsupported auth scheme")
 			return
