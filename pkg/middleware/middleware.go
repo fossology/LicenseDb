@@ -154,8 +154,8 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 					c.Abort()
 					return
 				}
-				c.Set("username", *user.Username)
-				c.Set("role", *user.Userlevel)
+				c.Set("username", *user.UserName)
+				c.Set("role", *user.UserLevel)
 			} else if iss == os.Getenv("OIDC_ISSUER") {
 				if auth.Jwks == nil || os.Getenv("OIDC_USERNAME_KEY") == "" {
 					log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
@@ -246,7 +246,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				}
 
 				var user models.User
-				if err := db.DB.Where(models.User{Username: &username}).First(&user).Error; err != nil {
+				if err := db.DB.Where(models.User{UserName: &username}).First(&user).Error; err != nil {
 					log.Printf("\033[31mError: %s\033[0m", err.Error())
 					er := models.LicenseError{
 						Status:    http.StatusUnauthorized,
@@ -260,8 +260,8 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 					return
 				}
 
-				c.Set("username", *user.Username)
-				c.Set("role", *user.Userlevel)
+				c.Set("username", *user.UserName)
+				c.Set("role", *user.UserLevel)
 			} else {
 				log.Printf("\033[31mError: Issuer '%s' not supported or not configured in .env\033[0m", iss)
 				er := models.LicenseError{
@@ -311,13 +311,13 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, er)
 				return
 			}
-			if err := utils.VerifyPassword(password, *user.Userpassword); err != nil {
+			if err := utils.VerifyPassword(password, *user.UserPassword); err != nil {
 				unauthorized(c, "invalid username or password")
 				return
 			}
 
-			c.Set("username", *user.Username)
-			c.Set("role", *user.Userlevel)
+			c.Set("username", *user.UserName)
+			c.Set("role", *user.UserLevel)
 			c.Next()
 
 		default:

@@ -847,7 +847,7 @@ func GetUserProfile(c *gin.Context) {
 // EncryptUserPassword checks if the password is already encrypted or not. If
 // not, it encrypts the password.
 func EncryptUserPassword(user *models.User) error {
-	_, err := bcrypt.Cost([]byte(*user.Userpassword))
+	_, err := bcrypt.Cost([]byte(*user.UserPassword))
 	if err == nil {
 		return nil
 	}
