@@ -31,6 +31,7 @@ definitions:
         enum:
         - obligation
         - license
+        - user
         example: license
         type: string
       type_id:

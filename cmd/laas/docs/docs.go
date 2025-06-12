@@ -2307,7 +2307,8 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "obligation",
-                        "license"
+                        "license",
+                        "user"
                     ],
                     "example": "license"
                 },
