@@ -816,3 +816,38 @@ func AddChangelogsForLicense(tx *gorm.DB, username string,
 
 	return nil
 }
+
+// AddChangelogsForUserUpdate adds changelogs for the updated fields on user update
+func AddChangelogsForUser(tx *gorm.DB, username string,
+	newUser, oldUser *models.User) error {
+	var changes []models.ChangeLog
+
+	AddChangelog("Username", oldUser.UserName, newUser.UserName, &changes)
+	AddChangelog("Displayname", oldUser.DisplayName, newUser.DisplayName, &changes)
+	AddChangelog("Useremail", oldUser.UserEmail, newUser.UserEmail, &changes)
+	AddChangelog("Userlevel", oldUser.UserLevel, newUser.UserLevel, &changes)
+	AddChangelog("Userpassword", oldUser.UserPassword, newUser.UserPassword, &changes)
+	AddChangelog("Active", oldUser.Active, newUser.Active, &changes)
+
+	if len(changes) != 0 {
+		var user models.User
+		if err := tx.Where(models.User{UserName: &username}).First(&user).Error; err != nil {
+			return err
+		}
+
+		audit := models.Audit{
+			UserId:     user.Id,
+			TypeId:     newUser.Id,
+			Timestamp:  time.Now(),
+			Type:       "USER",
+			ChangeLogs: changes,
+		}
+
+		if err := tx.Create(&audit).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
