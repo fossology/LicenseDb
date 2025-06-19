@@ -584,33 +584,49 @@ func UpdateProfile(c *gin.Context) {
 //	@Security		ApiKeyAuth
 //	@Router			/users/{username} [delete]
 func DeleteUser(c *gin.Context) {
-	var user models.User
-	username := c.Param("username")
-	active := true
-	if err := db.DB.Where(models.User{UserName: &username, Active: &active}).First(&user).Error; err != nil {
-		er := models.LicenseError{
-			Status:    http.StatusNotFound,
-			Message:   "no user with such username exists",
-			Error:     err.Error(),
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
+	_ = db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		username := c.Param("username")
+		active := true
+		if err := tx.Where(models.User{UserName: &username, Active: &active}).First(&user).Error; err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusNotFound,
+				Message:   "no user with such username exists",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusNotFound, er)
+			return err
 		}
-		c.JSON(http.StatusNotFound, er)
-		return
-	}
-	*user.Active = false
-	if err := db.DB.Updates(&user).Error; err != nil {
-		er := models.LicenseError{
-			Status:    http.StatusInternalServerError,
-			Message:   "failed to delete user",
-			Error:     err.Error(),
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
+		*user.Active = false
+		if err := tx.Updates(&user).Error; err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusInternalServerError,
+				Message:   "failed to delete user",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusNotFound, er)
+			return err
 		}
-		c.JSON(http.StatusNotFound, er)
-		return
-	}
-	c.Status(http.StatusNoContent)
+
+		if err := tx.Where(&models.OidcClient{UserId: user.Id}).Delete(&models.OidcClient{}).Error; err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusInternalServerError,
+				Message:   "failed to delete user",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusInternalServerError, er)
+			return err
+		}
+
+		c.Status(http.StatusNoContent)
+		return nil
+	})
 }
 
 // GetAllUser retrieves a list of all users from the database.
