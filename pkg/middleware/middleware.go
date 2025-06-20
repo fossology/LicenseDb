@@ -155,7 +155,8 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 			c.Set("username", *user.UserName)
 			c.Set("role", *user.UserLevel)
 		} else if iss == os.Getenv("OIDC_ISSUER") {
-			if auth.Jwks == nil || os.Getenv("OIDC_USERNAME_KEY") == "" {
+
+			if auth.Jwks == nil {
 				log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
 				er := models.LicenseError{
 					Status:    http.StatusInternalServerError,
@@ -228,34 +229,77 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 				return
 			}
 
-			var username string
-			if err = unverfiedParsedToken.Get(os.Getenv("OIDC_USERNAME_KEY"), &username); err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "Please check your credentials and try again",
-					Error:     "incompatible token format",
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+			isClientCredentialsFlow := false
+
+			var oidcClienTotUserMapper string
+			if os.Getenv("OIDC_CLIENT_TO_USER_MAPPER_CLAIM") != "" {
+				if err := unverfiedParsedToken.Get(os.Getenv("OIDC_CLIENT_TO_USER_MAPPER_CLAIM"), &oidcClienTotUserMapper); err == nil {
+					isClientCredentialsFlow = true
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
 			}
 
 			var user models.User
-			if err := db.DB.Where(models.User{UserName: &username}).First(&user).Error; err != nil {
-				log.Printf("\033[31mError: %s\033[0m", err.Error())
-				er := models.LicenseError{
-					Status:    http.StatusUnauthorized,
-					Message:   "User not found",
-					Error:     err.Error(),
-					Path:      c.Request.URL.Path,
-					Timestamp: time.Now().Format(time.RFC3339),
+
+			if isClientCredentialsFlow {
+				var oidcClient models.OidcClient
+				if err := db.DB.Preload("User").Where(&models.OidcClient{ClientId: oidcClienTotUserMapper}).Find(&oidcClient).Error; err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					er := models.LicenseError{
+						Status:    http.StatusUnauthorized,
+						Message:   "oidc client not set up",
+						Error:     err.Error(),
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					}
+					c.JSON(http.StatusUnauthorized, er)
+					c.Abort()
+					return
 				}
-				c.JSON(http.StatusUnauthorized, er)
-				c.Abort()
-				return
+
+				user = oidcClient.User
+			} else {
+				if os.Getenv("OIDC_USERNAME_KEY") == "" {
+					log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
+					er := models.LicenseError{
+						Status:    http.StatusInternalServerError,
+						Message:   "Something went wrong",
+						Error:     "internal server error",
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					}
+					c.JSON(http.StatusInternalServerError, er)
+					c.Abort()
+					return
+				}
+
+				var username string
+				if err = unverfiedParsedToken.Get(os.Getenv("OIDC_USERNAME_KEY"), &username); err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					er := models.LicenseError{
+						Status:    http.StatusUnauthorized,
+						Message:   "Please check your credentials and try again",
+						Error:     "incompatible token format",
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					}
+					c.JSON(http.StatusUnauthorized, er)
+					c.Abort()
+					return
+				}
+
+				if err := db.DB.Where(models.User{UserName: &username}).First(&user).Error; err != nil {
+					log.Printf("\033[31mError: %s\033[0m", err.Error())
+					er := models.LicenseError{
+						Status:    http.StatusUnauthorized,
+						Message:   "User not found",
+						Error:     err.Error(),
+						Path:      c.Request.URL.Path,
+						Timestamp: time.Now().Format(time.RFC3339),
+					}
+					c.JSON(http.StatusUnauthorized, er)
+					c.Abort()
+					return
+				}
 			}
 
 			c.Set("username", *user.UserName)
