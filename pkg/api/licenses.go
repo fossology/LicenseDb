@@ -820,3 +820,28 @@ func GetAllLicensePreviews(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+func getSimilarLicense(c *gin.Context) {
+	var req models.SimilarityRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Text field is required"})
+		return
+	}
+
+	var results []models.SimilarLicense
+	rawQuery := `
+		SELECT rf_id, rf_shortname , rf_text, similarity(rf_text, ?) AS similarity
+		FROM license_dbs
+		WHERE rf_text % ?
+		ORDER BY similarity DESC
+		LIMIT 5;
+	`
+
+	if err := db.DB.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

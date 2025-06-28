@@ -760,3 +760,28 @@ func GetAllObligationPreviews(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+func getSimilarObligation(c *gin.Context) {
+	var req models.SimilarityRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Text field is required"})
+		return
+	}
+
+	var results []models.SimilarObligation
+	rawQuery := `
+		SELECT id, topic,text, similarity(text, ?) AS similarity
+		FROM obligations
+		WHERE text % ?
+		ORDER BY similarity DESC
+		LIMIT 5;
+	`
+
+	if err := db.DB.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

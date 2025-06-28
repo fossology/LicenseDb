@@ -115,6 +115,9 @@ func Router() *gin.Engine {
 				licenses.POST("", CreateLicense)
 				licenses.PATCH(":shortname", UpdateLicense)
 				licenses.POST("import", middleware.RoleBasedAccessMiddleware([]string{"ADMIN", "SUPER_ADMIN"}), ImportLicenses)
+				licenses.POST("/sim-lic", getSimilarLicense)
+				licenses.POST("/similarity", getSimilarLicense)
+
 			}
 			search := authorizedv1.Group("/search")
 			{
@@ -147,6 +150,7 @@ func Router() *gin.Engine {
 				obligations.GET("/classifications", GetAllObligationClassification)
 				obligations.POST("/classifications", middleware.RoleBasedAccessMiddleware([]string{"ADMIN"}), CreateObligationClassification)
 				obligations.DELETE("/classifications/:classification", middleware.RoleBasedAccessMiddleware([]string{"ADMIN"}), DeleteObligationClassification)
+				obligations.POST("/similarity", getSimilarObligation)
 			}
 			obMap := authorizedv1.Group("/obligation_maps")
 			{
