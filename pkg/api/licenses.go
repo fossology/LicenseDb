@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -817,6 +818,66 @@ func GetAllLicensePreviews(c *gin.Context) {
 	}
 
 	res.Status = http.StatusOK
+
+	c.JSON(http.StatusOK, res)
+}
+
+// getSimilarLicense finds similar license texts using trigram similarity
+//
+//	@Summary		Find similar license texts
+//	@Description	Compares input license text with existing ones using pg_trgm similarity
+//	@ID				getSimilarLicense
+//	@Tags			Licenses
+//	@Accept			json
+//	@Produce		json
+//	@Param			license	body		models.SimilarityRequest	true	"Input license text to compare"
+//	@Success		200		{object}	[]models.SimilarLicense		"List of similar licenses"
+//	@Failure		400		{object}	models.LicenseError			"Invalid request or query failed"
+//	@Failure		500		{object}	models.LicenseError			"Internal server error"
+//	@Security		ApiKeyAuth
+//	@Router			/licenses/similarity [post]
+func getSimilarLicense(c *gin.Context) {
+	var req models.SimilarityRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "Text field is required",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+
+	var results []models.SimilarLicense
+	rawQuery := `
+		SELECT rf_id, rf_shortname , rf_text, similarity(rf_text, ?) AS similarity
+		FROM license_dbs
+		WHERE rf_text % ?
+		ORDER BY similarity DESC
+		LIMIT 5;
+	`
+
+	if err := db.DB.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error; err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "Database query failed",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+	res := models.ApiResponse{
+		Status: http.StatusOK,
+		Data:   results,
+		Meta: &models.PaginationMeta{
+			ResourceCount: len(results),
+		},
+	}
 
 	c.JSON(http.StatusOK, res)
 }
