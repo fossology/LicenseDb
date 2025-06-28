@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -882,9 +883,9 @@ type SimilarLicense struct {
 }
 
 type SimilarObligation struct {
-	Id         int64   `gorm:"primary_key;column:id" `
-	Topic      *string `gorm:"column:topic"`
-	Text       *string `gorm:"column:text"`
+	Id         int64   `gorm:"primary_key;column:id" example:"123" `
+	Topic      *string `gorm:"column:topic" example:"MIT license"`
+	Text       *string `gorm:"column:text" example:"obligation text here"`
 	Similarity float64 `json:"similarity"`
 }
 
@@ -896,5 +897,4 @@ type ApiResponse struct {
 	Status int         `json:"status"`
 	Data   interface{} `json:"data,omitempty"`
 	Meta   interface{} `json:"meta,omitempty"`
-	Error  string      `json:"error,omitempty"`
 }

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -821,6 +822,20 @@ func GetAllLicensePreviews(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// getSimilarLicense finds similar license texts using trigram similarity
+//
+//	@Summary		Find similar license texts
+//	@Description	Compares input license text with existing ones using pg_trgm similarity
+//	@ID				getSimilarLicense
+//	@Tags			Licenses
+//	@Accept			json
+//	@Produce		json
+//	@Param			license	body		models.SimilarityRequest	true	"Input license text to compare"
+//	@Success		200		{object}	[]models.SimilarLicense		"List of similar licenses"
+//	@Failure		400		{object}	models.LicenseError			"Invalid request or query failed"
+//	@Failure		500		{object}	models.LicenseError			"Internal server error"
+//	@Security		ApiKeyAuth
+//	@Router			/licenses/similarity [post]
 func getSimilarLicense(c *gin.Context) {
 	var req models.SimilarityRequest
 

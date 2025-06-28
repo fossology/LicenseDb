@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -761,6 +762,20 @@ func GetAllObligationPreviews(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// getSimilarObligation finds similar obligation texts using trigram similarity
+//
+//	@Summary		Find similar obligations
+//	@Description	Returns the top 5 obligations with text similar to the input using pg_trgm
+//	@ID				getSimilarObligation
+//	@Tags			Obligations
+//	@Accept			json
+//	@Produce		json
+//	@Param			obligation	body		models.SimilarityRequest	true	"Text to compare against stored obligations"
+//	@Success		200			{object}	[]models.SimilarObligation	"Similar obligations found"
+//	@Failure		400			{object}	models.LicenseError			"Invalid input or database query failure"
+//	@Failure		500			{object}	models.LicenseError			"Unexpected server error"
+//	@Security		ApiKeyAuth
+//	@Router			/obligations/similarity [post]
 func getSimilarObligation(c *gin.Context) {
 	var req models.SimilarityRequest
 
