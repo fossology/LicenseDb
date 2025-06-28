@@ -891,3 +891,10 @@ type SimilarObligation struct {
 type SimilarityRequest struct {
 	Text string `json:"text" binding:"required"`
 }
+
+type ApiResponse struct {
+	Status int         `json:"status"`
+	Data   interface{} `json:"data,omitempty"`
+	Meta   interface{} `json:"meta,omitempty"`
+	Error  string      `json:"error,omitempty"`
+}

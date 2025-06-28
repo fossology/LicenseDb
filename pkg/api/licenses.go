@@ -825,7 +825,14 @@ func getSimilarLicense(c *gin.Context) {
 	var req models.SimilarityRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Text field is required"})
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "Text field is required",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
 		return
 	}
 
@@ -839,9 +846,23 @@ func getSimilarLicense(c *gin.Context) {
 	`
 
 	if err := db.DB.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed", "details": err.Error()})
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "Database query failed",
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
 		return
 	}
+	res := models.ApiResponse{
+		Status: http.StatusOK,
+		Data:   results,
+		Meta: &models.PaginationMeta{
+			ResourceCount: len(results),
+		},
+	}
 
-	c.JSON(http.StatusOK, results)
+	c.JSON(http.StatusOK, res)
 }
