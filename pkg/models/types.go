@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -872,4 +873,28 @@ type Dashboard struct {
 type DashboardResponse struct {
 	Status int       `json:"status" example:"200"`
 	Data   Dashboard `json:"data"`
+}
+
+type SimilarLicense struct {
+	Id         int64   `json:"id" gorm:"column:rf_id" example:"123"`
+	Shortname  *string `json:"shortname" gorm:"column:rf_shortname" example:"MIT"`
+	Text       *string `json:"text" gorm:"column:rf_text" example:"MIT License Text here"`
+	Similarity float64 `json:"similarity"`
+}
+
+type SimilarObligation struct {
+	Id         int64   `gorm:"primary_key;column:id" example:"123" `
+	Topic      *string `gorm:"column:topic" example:"MIT license"`
+	Text       *string `gorm:"column:text" example:"obligation text here"`
+	Similarity float64 `json:"similarity"`
+}
+
+type SimilarityRequest struct {
+	Text string `json:"text" binding:"required"`
+}
+
+type ApiResponse struct {
+	Status int         `json:"status"`
+	Data   interface{} `json:"data,omitempty"`
+	Meta   interface{} `json:"meta,omitempty"`
 }
