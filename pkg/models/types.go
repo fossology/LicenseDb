@@ -873,3 +873,17 @@ type DashboardResponse struct {
 	Status int       `json:"status" example:"200"`
 	Data   Dashboard `json:"data"`
 }
+
+type Tokens struct {
+	AccessToken  string `json:"access_token" example:"your_access_token_here"`
+	RefreshToken string `json:"refresh_token" example:"your_refresh_token_here"`
+}
+type RefreshToken struct {
+	RefreshToken string `json:"refresh_token" example:"your_refresh_token_here"`
+}
+
+type ApiResponse struct {
+	Status int         `json:"status"`
+	Data   interface{} `json:"data,omitempty"`
+	Meta   interface{} `json:"meta,omitempty"`
+}
