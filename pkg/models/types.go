@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -449,6 +450,7 @@ type Obligation struct {
 	Type                       *ObligationType           `gorm:"foreignKey:ObligationTypeId; references:Id"`
 	Classification             *ObligationClassification `gorm:"foreignKey:ObligationClassificationId ;references:Id"`
 	Category                   *string                   `json:"category" gorm:"default:GENERAL" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
+	Shortnames                 []string                  `gorm:"-" json:"-"` // This field is not stored in the database, but used for JSON marshalling
 }
 
 func (Obligation) TableName() string {
@@ -530,14 +532,6 @@ func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {
 
 	if err := validateCategory(o); err != nil {
 		return err
-	}
-
-	for i := 0; i < len(o.Licenses); i++ {
-		var license LicenseDB
-		if err := tx.Where(LicenseDB{Shortname: o.Licenses[i].Shortname}).First(&license).Error; err != nil {
-			return fmt.Errorf("license with shortname %s not found", *o.Licenses[i].Shortname)
-		}
-		o.Licenses[i] = &license
 	}
 
 	return nil
@@ -642,9 +636,16 @@ func (o *Obligation) MarshalJSON() ([]byte, error) {
 		ob.Category = &defaultCategory
 	}
 
-	for i := 0; i < len(o.Licenses); i++ {
-		ob.Shortnames = append(ob.Shortnames, *o.Licenses[i].Shortname)
+	if len(o.Shortnames) > 0 {
+		ob.Shortnames = append(ob.Shortnames, o.Shortnames...)
+	} else {
+		for _, lic := range o.Licenses {
+			if lic.Shortname != nil {
+				ob.Shortnames = append(ob.Shortnames, *lic.Shortname)
+			}
+		}
 	}
+
 	return json.Marshal(ob)
 }
 
@@ -658,7 +659,10 @@ func (o *Obligation) UnmarshalJSON(data []byte) error {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(&dto); err != nil {
-		return fmt.Errorf("field '%s' failed validation: %s", err.(validator.ValidationErrors)[0].Field(), err.(validator.ValidationErrors)[0].Tag())
+		if valErrs, ok := err.(validator.ValidationErrors); ok && len(valErrs) > 0 {
+			return fmt.Errorf("ObligationDTO validation failed: field '%s' violated '%s'", valErrs[0].Field(), valErrs[0].Tag())
+		}
+		return err
 	}
 
 	o.Topic = dto.Topic
@@ -681,12 +685,7 @@ func (o *Obligation) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	o.Licenses = []*LicenseDB{}
-	for i := 0; i < len(dto.Shortnames); i++ {
-		o.Licenses = append(o.Licenses, &LicenseDB{
-			Shortname: &dto.Shortnames[i],
-		})
-	}
+	o.Shortnames = append(o.Shortnames, dto.Shortnames...)
 
 	return nil
 }
