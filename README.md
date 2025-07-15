@@ -65,19 +65,21 @@ Before proceeding, make sure you have the following installed on your system:
 
 
 
-- Install Golang
+### 1. Install Golang
 
 Follow the official instructions to install Golang:  
 👉 [https://go.dev/doc/install](https://go.dev/doc/install)
 
----
-
-- Install golang-migrate CLI (For Linux & MacOs)
+### 2. Install golang-migrate CLI (For Linux & MacOs)
 
 ```bash
 curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
 sudo mv migrate /usr/local/bin/
 ```
+
+### 3.  Air (optional)
+- Air helps in hot reloading of the backend
+- **Air guide**: [Guide](https://github.com/air-verse/air#installation)
 
 ## How to run this project?
 
@@ -131,6 +133,10 @@ migrate -path pkg/db/migrations -database "postgres://fossy:fossy@localhost:5432
 
 ```bash
 go run ./cmd/laas
+```
+- Run the backend with `Air` 
+```
+air
 ```
 
 ### Create first user

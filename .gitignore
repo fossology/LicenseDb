@@ -33,3 +33,7 @@ licenseRef.json
 external_ref_fields.yaml
 
 pkg/models/external_ref_structs.go
+
+
+# air logs
+bin
