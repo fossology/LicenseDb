@@ -93,6 +93,10 @@ func Router() *gin.Engine {
 			{
 				login.POST("", auth.Login)
 			}
+			ref := unAuthorizedv1.Group("/refresh-token")
+			{
+				ref.POST("", auth.VerifyRefreshToken)
+			}
 			apiCollection := unAuthorizedv1.Group("/apiCollection")
 			{
 				apiCollection.GET("", GetAPICollection)
