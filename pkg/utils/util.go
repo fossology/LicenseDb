@@ -241,7 +241,7 @@ func InsertOrUpdateLicenseOnImport(license *models.LicenseDB, externalRefs *mode
 			newLicense = *license
 
 			// Update all other fields except external_ref and rf_shortname
-			query := tx.Model(&newLicense).Where(&models.LicenseDB{Id: oldLicense.Id}).Omit("external_ref", "rf_shortname")
+			query := tx.Model(&newLicense).Where(&models.LicenseDB{Id: oldLicense.Id}).Omit("external_ref", "rf_shortname", "User")
 
 			// Do not update text in import if it was modified manually
 			if *oldLicense.Flag == 2 {
@@ -840,4 +840,38 @@ func AddChangelogsForLicense(tx *gorm.DB, username string,
 	}
 
 	return nil
+}
+
+// AddChangelogsForUser adds changelogs for the updated fields on user update
+func AddChangelogsForUser(tx *gorm.DB, username string,
+	newUser, oldUser *models.User) error {
+	var changes []models.ChangeLog
+
+	AddChangelog("UserName", oldUser.UserName, newUser.UserName, &changes)
+	AddChangelog("DisplayName", oldUser.DisplayName, newUser.DisplayName, &changes)
+	AddChangelog("UserEmail", oldUser.UserEmail, newUser.UserEmail, &changes)
+	AddChangelog("UserLevel", oldUser.UserLevel, newUser.UserLevel, &changes)
+	AddChangelog("Active", oldUser.Active, newUser.Active, &changes)
+
+	if len(changes) != 0 {
+		var user models.User
+		if err := tx.Where(models.User{UserName: &username}).First(&user).Error; err != nil {
+			return err
+		}
+
+		audit := models.Audit{
+			UserId:     user.Id,
+			TypeId:     newUser.Id,
+			Timestamp:  time.Now(),
+			Type:       "USER",
+			ChangeLogs: changes,
+		}
+
+		if err := tx.Create(&audit).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
