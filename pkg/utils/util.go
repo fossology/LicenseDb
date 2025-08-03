@@ -385,6 +385,31 @@ func PerformObligationMapActions(username string, obligation *models.Obligation,
 	return newLicenseAssociations, errs
 }
 
+// MapLicensesToObligation associates a given list of license shortnames with the provided obligation.
+// It fetches each license by its shortname from the database and appends the corresponding LicenseDB
+// entries to the obligation using GORM's association mode.
+func MapLicensesToObligation(tx *gorm.DB, obligation *models.Obligation, shortnames []string) error {
+	var licensesToAssociate []models.LicenseDB
+
+	for _, short := range shortnames {
+		var license models.LicenseDB
+		if err := tx.Where(&models.LicenseDB{Shortname: &short}).First(&license).Error; err != nil {
+			return fmt.Errorf("license '%s' not found: %v", short, err)
+		}
+		licensesToAssociate = append(licensesToAssociate, license)
+	}
+
+	// Associate licenses
+	if err := tx.Session(&gorm.Session{SkipHooks: true}).
+		Model(obligation).
+		Association("Licenses").
+		Append(licensesToAssociate); err != nil {
+		return fmt.Errorf("failed to associate licenses: %w", err)
+	}
+
+	return nil
+}
+
 // createObligationMapChangelog creates the changelog for the obligation map changes.
 func createObligationMapChangelog(tx *gorm.DB, username string,
 	newLicenseAssociations, oldLicenseAssociations []string, obligation *models.Obligation) error {

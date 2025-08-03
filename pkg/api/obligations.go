@@ -202,6 +202,18 @@ func CreateObligation(c *gin.Context) {
 			return errors.New("can not create obligation with same topic or text")
 		}
 
+		if err := utils.MapLicensesToObligation(tx, &obligation, obligation.Shortnames); err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusBadRequest,
+				Message:   "Failed to associate licenses",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusBadRequest, er)
+			return err
+		}
+
 		if err := addChangelogsForObligation(tx, username, &obligation, &models.Obligation{}); err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusBadRequest,
