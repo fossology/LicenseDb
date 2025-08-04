@@ -2475,6 +2475,9 @@ const docTemplate = `{
         "datatypes.JSONType-models_LicenseDBSchemaExtension": {
             "type": "object"
         },
+        "datatypes.JSONType-models_ObligationSchemaExtension": {
+            "type": "object"
+        },
         "models.APICollection": {
             "type": "object",
             "properties": {
@@ -2825,7 +2828,15 @@ const docTemplate = `{
             }
         },
         "models.LicenseDBSchemaExtension": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "license_explanation": {
+                    "type": "string"
+                },
+                "license_suffix": {
+                    "type": "string"
+                }
+            }
         },
         "models.LicenseError": {
             "type": "object",
@@ -3089,6 +3100,9 @@ const docTemplate = `{
                 "comment": {
                     "type": "string"
                 },
+                "externalRef": {
+                    "$ref": "#/definitions/datatypes.JSONType-models_ObligationSchemaExtension"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3183,6 +3197,9 @@ const docTemplate = `{
                 },
                 "comment": {
                     "type": "string"
+                },
+                "external_ref": {
+                    "$ref": "#/definitions/models.ObligationSchemaExtension"
                 },
                 "modifications": {
                     "type": "boolean",
@@ -3324,6 +3341,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ObligationSchemaExtension": {
+            "type": "object",
+            "properties": {
+                "obligation_explanation": {
+                    "type": "string"
+                },
+                "obligation_suffix": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ObligationType": {
             "type": "object",
             "required": [
@@ -3370,6 +3398,10 @@ const docTemplate = `{
                 },
                 "comment": {
                     "type": "string"
+                },
+                "external_ref": {
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "modifications": {
                     "type": "boolean",
