@@ -20,12 +20,12 @@ import (
 	"time"
 
 	"github.com/fossology/LicenseDb/pkg/db"
+	email "github.com/fossology/LicenseDb/pkg/email"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/fossology/LicenseDb/pkg/validations"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-
 	"gorm.io/gorm"
 )
 
@@ -308,6 +308,13 @@ func CreateLicense(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
+		// insert the email to licenseEmail queue
+		go email.Email.QueueLicenseEmail(email.LicenseJob{
+			UserName:    *lic.User.UserName,
+			UserEmail:   *lic.User.UserEmail,
+			Action:      "Created",
+			LicenseName: *lic.Shortname,
+		})
 
 		res := models.LicenseResponse{
 			Data:   []models.LicenseResponseDTO{lic.ConvertToLicenseResponseDTO()},
@@ -451,6 +458,12 @@ func UpdateLicense(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
+		go email.Email.QueueLicenseEmail(email.LicenseJob{
+			UserName:    *newLicense.User.UserName,
+			UserEmail:   *newLicense.User.UserEmail,
+			Action:      "Updated",
+			LicenseName: *newLicense.Shortname,
+		})
 
 		res := models.LicenseResponse{
 			Data:   []models.LicenseResponseDTO{newLicense.ConvertToLicenseResponseDTO()},
@@ -641,6 +654,7 @@ func ImportLicenses(c *gin.Context) {
 	res := models.ImportLicensesResponse{
 		Status: http.StatusOK,
 	}
+	var total, success, failed int
 
 	for i := range licenses {
 		lic, err := licenses[i].ConvertToLicenseDB()
@@ -683,7 +697,23 @@ func ImportLicenses(c *gin.Context) {
 			})
 			// error is not returned here as it will rollback the transaction
 		}
+		if importStatus == utils.IMPORT_LICENSE_CREATED ||
+			importStatus == utils.IMPORT_LICENSE_UPDATED ||
+			importStatus == utils.IMPORT_LICENSE_UPDATED_EXCEPT_TEXT {
+			success++
+		} else {
+			failed++
+		}
 	}
+	go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
+		UserName:  username,
+		UserEmail: useremail,
+		Type:      "license",
+		Total:     total,
+		Success:   success,
+		Failed:    failed,
+		Timestamp: time.Now(),
+	})
 
 	c.JSON(http.StatusOK, res)
 }

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Siemens AG
 // SPDX-FileContributor: Gaurav Mishra <mishra.gaurav@siemens.com>
 // SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+// SPDX-FileContributor: 2025 Chayan Das <01chayandas@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
@@ -10,18 +11,26 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"runtime"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lestrrat-go/httprc/v3"
 	"github.com/lestrrat-go/jwx/v3/jwk"
+	"go.uber.org/zap"
 
 	_ "github.com/dave/jennifer/jen"
 	_ "github.com/fossology/LicenseDb/cmd/laas/docs"
 	"github.com/fossology/LicenseDb/pkg/api"
 	"github.com/fossology/LicenseDb/pkg/auth"
 	"github.com/fossology/LicenseDb/pkg/db"
+	"github.com/fossology/LicenseDb/pkg/email"
+	logger "github.com/fossology/LicenseDb/pkg/log"
+
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/fossology/LicenseDb/pkg/validations"
 )
@@ -39,21 +48,39 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
-
 	flag.Parse()
+	// SMTP_HOST=smtp.gmail.com
+	// SMTP_PORT=587
+	// SMTP_USER=img_2023017@iiitm.ac.in
+	// SMTP_PASSWORD=qmngjzktlcnvjcpp
+	smtpEmail := os.Getenv("SMTP_USER")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPortStr := os.Getenv("SMTP_PORT")
+
+	if smtpEmail == "" || smtpPassword == "" || smtpHost == "" || smtpPortStr == "" {
+		log.Fatal("Missing SMTP environment variables")
+	}
+
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		log.Fatalf("Invalid SMTP_PORT: %v", err)
+	}
+
+	email.Init(smtpEmail, smtpPassword, smtpHost, smtpPort)
 
 	if os.Getenv("TOKEN_HOUR_LIFESPAN") == "" || os.Getenv("API_SECRET") == "" || os.Getenv("DEFAULT_ISSUER") == "" {
-		log.Fatal("Mandatory environment variables not configured")
+		logger.LogFatal("Mandatory environment variables not configured")
 	}
 
 	if os.Getenv("JWKS_URI") != "" {
 		cache, err := jwk.NewCache(context.Background(), httprc.NewClient())
 		if err != nil {
-			log.Fatalf("Failed to create a jwk.Cache from the oidc provider's URL: %s", err)
+			logger.LogFatal("Failed to create a jwk.Cache from the oidc provider's URL:", zap.Error(err))
 		}
 
 		if err := cache.Register(context.Background(), os.Getenv("JWKS_URI")); err != nil {
-			log.Fatalf("Failed to create a jwk.Cache from the oidc provider's URL: %s", err)
+			logger.LogFatal("Failed to create a jwk.Cache from the oidc provider's URL:", zap.Error(err))
 		}
 
 		auth.Jwks = cache
@@ -76,8 +103,14 @@ func main() {
 	}
 
 	r := api.Router()
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			fmt.Println(" Goroutines running:", runtime.NumGoroutine())
+		}
+	}()
 
 	if err := r.Run(); err != nil {
-		log.Fatalf("Error while running the server: %v", err)
+		logger.LogFatal("Error while running the server:", zap.Error(err))
 	}
 }
