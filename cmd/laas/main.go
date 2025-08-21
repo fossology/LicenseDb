@@ -48,7 +48,7 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 	flag.Parse()
-
+	// Start the email service
 	if err := email.Init(); err != nil {
 		logger.LogFatal("Failed to initialize email service", zap.Error(err))
 	}
