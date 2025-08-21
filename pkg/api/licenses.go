@@ -20,12 +20,13 @@ import (
 	"time"
 
 	"github.com/fossology/LicenseDb/pkg/db"
+	email "github.com/fossology/LicenseDb/pkg/email"
+	logger "github.com/fossology/LicenseDb/pkg/log"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/fossology/LicenseDb/pkg/validations"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-
 	"gorm.io/gorm"
 )
 
@@ -308,6 +309,17 @@ func CreateLicense(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
+		// insert the email to licenseEmail queue
+		if email.IsEmailServiceRunning() {
+			go email.Email.QueueLicenseEmail(email.LicenseJob{
+				UserName:    *lic.User.UserName,
+				UserEmail:   *lic.User.UserEmail,
+				Action:      "Created",
+				LicenseName: *lic.Shortname,
+			})
+		} else {
+			logger.LogInfo("SMTP disabled or not reachable. Skipping email.")
+		}
 
 		res := models.LicenseResponse{
 			Data:   []models.LicenseResponseDTO{lic.ConvertToLicenseResponseDTO()},
@@ -451,6 +463,16 @@ func UpdateLicense(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
+		if email.IsEmailServiceRunning() {
+			go email.Email.QueueLicenseEmail(email.LicenseJob{
+				UserName:    *newLicense.User.UserName,
+				UserEmail:   *newLicense.User.UserEmail,
+				Action:      "Updated",
+				LicenseName: *newLicense.Shortname,
+			})
+		} else {
+			logger.LogInfo("SMTP disabled or not reachable. Skipping email.")
+		}
 
 		res := models.LicenseResponse{
 			Data:   []models.LicenseResponseDTO{newLicense.ConvertToLicenseResponseDTO()},
@@ -573,6 +595,7 @@ func SearchInLicense(c *gin.Context) {
 //	@Router			/licenses/import [post]
 func ImportLicenses(c *gin.Context) {
 	userId := c.MustGet("userId").(int64)
+	var user models.User
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		er := models.LicenseError{
@@ -641,8 +664,21 @@ func ImportLicenses(c *gin.Context) {
 	res := models.ImportLicensesResponse{
 		Status: http.StatusOK,
 	}
-
+	var total, success, failed int
+	err = db.DB.Where(models.User{Id: userId}).First(&user).Error
+	if err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusNotFound,
+			Message:   fmt.Sprintf("no with userId '%d' exists", userId),
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusNotFound, er)
+		return
+	}
 	for i := range licenses {
+		total++
 		lic, err := licenses[i].ConvertToLicenseDB()
 		if err != nil {
 			res.Data = append(res.Data, models.LicenseError{
@@ -683,6 +719,28 @@ func ImportLicenses(c *gin.Context) {
 			})
 			// error is not returned here as it will rollback the transaction
 		}
+		if importStatus == utils.IMPORT_LICENSE_CREATED ||
+			importStatus == utils.IMPORT_LICENSE_UPDATED ||
+			importStatus == utils.IMPORT_LICENSE_UPDATED_EXCEPT_TEXT {
+			success++
+		} else {
+			failed++
+		}
+	}
+
+	if email.IsEmailServiceRunning() {
+
+		go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
+			UserName:  *user.UserName,
+			UserEmail: *user.UserEmail,
+			Type:      "license",
+			Total:     total,
+			Success:   success,
+			Failed:    failed,
+			Timestamp: time.Now(),
+		})
+	} else {
+		logger.LogInfo("SMTP disabled or not reachable. Skipping email.")
 	}
 
 	c.JSON(http.StatusOK, res)
