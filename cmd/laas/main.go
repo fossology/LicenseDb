@@ -13,6 +13,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/lestrrat-go/httprc/v3"
@@ -47,9 +48,13 @@ func main() {
 	flag.Parse()
 
 	// Start the email service
-	if err := email.Init(); err != nil {
-		logger.LogFatal("Failed to initialize email service", zap.Error(err))
+	EnableSMTP, _ := strconv.ParseBool(os.Getenv("ENABLE_SMTP"))
+	if EnableSMTP {
+		if err := email.Init(); err != nil {
+			logger.LogFatal("Failed to initialize email service", zap.Error(err))
+		}
 	}
+
 	if os.Getenv("TOKEN_HOUR_LIFESPAN") == "" || os.Getenv("API_SECRET") == "" || os.Getenv("DEFAULT_ISSUER") == "" {
 		logger.LogFatal("Mandatory environment variables not configured")
 	}

@@ -6,6 +6,7 @@ package email
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -55,7 +56,6 @@ const (
 	licenseQueueSize = 100
 	bulkQueueSize    = 100
 	workerPoolSize   = 5
-	emailRetryCount  = 3
 )
 
 func NewEmailService(from, password, host string, port int) *AsyncEmailService {
@@ -173,8 +173,35 @@ func (s *AsyncEmailService) sendEmail(email EmailData) {
 	}
 }
 
+// IsRunning checks if the email service is initialized and SMTP is reachable.
+func (s *AsyncEmailService) IsRunning() bool {
+	EnableSMTP, _ := strconv.ParseBool(os.Getenv("ENABLE_SMTP"))
+	if !EnableSMTP {
+		return false
+	}
+
+	if s == nil {
+		return false
+	}
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", s.host, s.port), 2*time.Second)
+	if err != nil {
+		s.logger.Error("SMTP server is not reachable",
+			zap.String("host", s.host),
+			zap.Int("port", s.port),
+			zap.Error(err),
+		)
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
 // Global service instance
 var Email *AsyncEmailService
+
+func IsEmailServiceRunning() bool {
+	return Email != nil && Email.IsRunning()
+}
 
 func Init() error {
 	from := os.Getenv("SMTP_USER")
