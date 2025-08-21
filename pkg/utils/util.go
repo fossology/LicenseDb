@@ -518,15 +518,17 @@ func Populatedb(datafile string) {
 		}
 		_, _ = InsertOrUpdateLicenseOnImport(&lic, &models.UpdateExternalRefsJSONPayload{ExternalRef: make(map[string]interface{})}, user.Id)
 	}
-	go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
-		UserName:  *user.UserName,
-		UserEmail: *user.UserEmail,
-		Type:      "license",
-		Total:     total,
-		Success:   success,
-		Failed:    failed,
-		Timestamp: time.Now(),
-	})
+	if email.IsEmailServiceRunning() {
+		go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
+			UserName:  *user.UserName,
+			UserEmail: *user.UserEmail,
+			Type:      "license",
+			Total:     total,
+			Success:   success,
+			Failed:    failed,
+			Timestamp: time.Now(),
+		})
+	}
 
 	DEFAULT_OBLIGATION_TYPES := []*models.ObligationType{
 		{Type: "OBLIGATION"},
