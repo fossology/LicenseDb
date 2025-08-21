@@ -586,6 +586,7 @@ func SearchInLicense(c *gin.Context) {
 //	@Router			/licenses/import [post]
 func ImportLicenses(c *gin.Context) {
 	userId := c.MustGet("userId").(int64)
+	var user models.User
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		er := models.LicenseError{
@@ -654,8 +655,19 @@ func ImportLicenses(c *gin.Context) {
 	res := models.ImportLicensesResponse{
 		Status: http.StatusOK,
 	}
-	// var total, success, failed int
-
+	var total, success, failed int
+	err = db.DB.Where(models.User{Id: userId}).First(&user).Error
+	if err != nil {
+		er := models.LicenseError{
+			Status:    http.StatusNotFound,
+			Message:   fmt.Sprintf("no  with userId '%s' exists", userId),
+			Error:     err.Error(),
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusNotFound, er)
+		return
+	}
 	for i := range licenses {
 		lic, err := licenses[i].ConvertToLicenseDB()
 		if err != nil {
@@ -700,20 +712,21 @@ func ImportLicenses(c *gin.Context) {
 		if importStatus == utils.IMPORT_LICENSE_CREATED ||
 			importStatus == utils.IMPORT_LICENSE_UPDATED ||
 			importStatus == utils.IMPORT_LICENSE_UPDATED_EXCEPT_TEXT {
-			// success++
+			success++
 		} else {
-			// failed++
+			failed++
 		}
 	}
-	// go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
-	// 	UserName:  username,
-	// 	UserEmail: useremail,
-	// 	Type:      "license",
-	// 	Total:     total,
-	// 	Success:   success,
-	// 	Failed:    failed,
-	// 	Timestamp: time.Now(),
-	// })
+
+	go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
+		UserName:  *user.UserName,
+		UserEmail: *user.UserEmail,
+		Type:      "license",
+		Total:     total,
+		Success:   success,
+		Failed:    failed,
+		Timestamp: time.Now(),
+	})
 
 	c.JSON(http.StatusOK, res)
 }
