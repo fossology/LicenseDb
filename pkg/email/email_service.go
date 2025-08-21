@@ -1,6 +1,9 @@
 package email
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	templates "github.com/fossology/LicenseDb/pkg/email/templetes"
@@ -169,6 +172,22 @@ func (s *AsyncEmailService) sendEmail(email EmailData) {
 // Global service instance
 var Email *AsyncEmailService
 
-func Init(from, password, host string, port int) {
+func Init() error {
+	from := os.Getenv("SMTP_USER")
+	password := os.Getenv("SMTP_PASSWORD")
+	host := os.Getenv("SMTP_HOST")
+	portStr := os.Getenv("SMTP_PORT")
+
+	if from == "" || password == "" || host == "" || portStr == "" {
+		return fmt.Errorf("missing one or more SMTP environment variables")
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return fmt.Errorf("invalid SMTP_PORT: %v", err)
+	}
+
+	// Initialize the email service
 	Email = NewEmailService(from, password, host, port)
+	return nil
 }

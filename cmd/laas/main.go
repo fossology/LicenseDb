@@ -15,7 +15,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -49,26 +48,10 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 	flag.Parse()
-	// SMTP_HOST=smtp.gmail.com
-	// SMTP_PORT=587
-	// SMTP_USER=img_2023017@iiitm.ac.in
-	// SMTP_PASSWORD=qmngjzktlcnvjcpp
-	smtpEmail := os.Getenv("SMTP_USER")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPortStr := os.Getenv("SMTP_PORT")
 
-	if smtpEmail == "" || smtpPassword == "" || smtpHost == "" || smtpPortStr == "" {
-		log.Fatal("Missing SMTP environment variables")
+	if err := email.Init(); err != nil {
+		logger.LogFatal("Failed to initialize email service", zap.Error(err))
 	}
-
-	smtpPort, err := strconv.Atoi(smtpPortStr)
-	if err != nil {
-		log.Fatalf("Invalid SMTP_PORT: %v", err)
-	}
-
-	email.Init(smtpEmail, smtpPassword, smtpHost, smtpPort)
-
 	if os.Getenv("TOKEN_HOUR_LIFESPAN") == "" || os.Getenv("API_SECRET") == "" || os.Getenv("DEFAULT_ISSUER") == "" {
 		logger.LogFatal("Mandatory environment variables not configured")
 	}

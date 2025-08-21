@@ -654,7 +654,7 @@ func ImportLicenses(c *gin.Context) {
 	res := models.ImportLicensesResponse{
 		Status: http.StatusOK,
 	}
-	var total, success, failed int
+	// var total, success, failed int
 
 	for i := range licenses {
 		lic, err := licenses[i].ConvertToLicenseDB()
@@ -700,20 +700,20 @@ func ImportLicenses(c *gin.Context) {
 		if importStatus == utils.IMPORT_LICENSE_CREATED ||
 			importStatus == utils.IMPORT_LICENSE_UPDATED ||
 			importStatus == utils.IMPORT_LICENSE_UPDATED_EXCEPT_TEXT {
-			success++
+			// success++
 		} else {
-			failed++
+			// failed++
 		}
 	}
-	go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
-		UserName:  username,
-		UserEmail: useremail,
-		Type:      "license",
-		Total:     total,
-		Success:   success,
-		Failed:    failed,
-		Timestamp: time.Now(),
-	})
+	// go email.Email.QueueBulkInsertEmail(email.BulkInsertJob{
+	// 	UserName:  username,
+	// 	UserEmail: useremail,
+	// 	Type:      "license",
+	// 	Total:     total,
+	// 	Success:   success,
+	// 	Failed:    failed,
+	// 	Timestamp: time.Now(),
+	// })
 
 	c.JSON(http.StatusOK, res)
 }
