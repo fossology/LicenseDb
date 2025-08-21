@@ -695,3 +695,12 @@ type ApiResponse[T any] struct {
 	Data   T   `json:"data,omitempty"`
 	Meta   any `json:"meta,omitempty"`
 }
+type Tokens struct {
+	AccessToken  string `json:"access_token" example:"your_access_token_here"`
+	RefreshToken string `json:"refresh_token,omitempty" example:"your_refresh_token_here"`
+	ExpiresIn    int64  `json:"expires_in" example:"3600"`
+}
+
+type RefreshToken struct {
+	RefreshToken string `json:"refresh_token" example:"your_refresh_token_here"`
+}
