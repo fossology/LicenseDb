@@ -1,16 +1,34 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # SPDX-FileCopyrightText: FOSSology contributors
 
-fields:
-  - name: "license_suffix"
-    type: "string"
-    struct_field_name: "LicenseSuffix"
-    label: "License Suffix"
-    formComponentPath: "../components/dynamic/inputField"
-    componentType: "input"
-  - name: "license_explanation"
-    type: "string"
-    struct_field_name: "LicenseExplanation"
-    label: "License Explanation"
-    formComponentPath: "../components/dynamic/inputField"
-    componentType: "input"
+# add the same yaml file to your frontend project
+
+license:
+  fields:
+    - name: "license_suffix" # json key of the field to be added
+      type: "string" # the datatype of the field
+      struct_field_name: "LicenseSuffix" # key to map this field to a gorm struct
+      label: "License Suffix" # the label of the field in ui
+      formComponentPath: "../components/dynamic/inputField" # path to dynamic form component to be rendeed
+      componentType: "input" # type of form component to be rendered
+    - name: "license_explanation"
+      type: "string"
+      struct_field_name: "LicenseExplanation"
+      label: "License Explanation"
+      formComponentPath: "../components/dynamic/inputField"
+      componentType: "input"
+
+obligation:
+  fields:
+    - name: "obligation_suffix"
+      type: "string"
+      struct_field_name: "ObligationSuffix"
+      label: "Obligation Suffix"
+      formComponentPath: "../components/dynamic/inputField"
+      componentType: "input"
+    - name: "obligation_explanation"
+      type: "string"
+      struct_field_name: "ObligationExplanation"
+      label: "Obligation Explanation"
+      formComponentPath: "../components/dynamic/inputField"
+      componentType: "input"
