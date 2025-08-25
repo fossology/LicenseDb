@@ -83,12 +83,12 @@ func TestGetAllObligationClassification(t *testing.T) {
 	})
 }
 func TestDeleteObligationClassificationAPI(t *testing.T) {
-	classification := "TEST_CREATE"
+	classification := "TEST_DELETE_CREATE"
 	loginAs(t, "admin")
 
 	validClassification := models.ObligationClassification{
 		Classification: classification,
-		Color:          "#FF00FF",
+		Color:          "#FF00FE",
 		Active:         boolPtr(true),
 	}
 
