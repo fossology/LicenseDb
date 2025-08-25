@@ -69,7 +69,6 @@ func TestGetChangeLogs(t *testing.T) {
 }
 func TestGetChangeLogByID(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		// Directly fetch changelog ID 1 for audit ID 1
 		w := makeRequest("GET", "/audits/1/changes/1", nil, true)
 
 		assert.Equal(t, http.StatusOK, w.Code)
