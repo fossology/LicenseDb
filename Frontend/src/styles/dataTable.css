@@ -1,0 +1,61 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.rdt_TableCell {
+	color: gray;
+	font-size: 14px;
+}
+
+.rdt_TableHeadRow {
+	font-weight: bold;
+	color: #636363;
+	font-size: 15px;
+}
+
+.rdt_TableCol {
+	background: rgb(216, 232, 253);
+}
+
+.rdt_Table {
+	max-height: 68vh !important;
+}
+
+/* User table css */
+table tr th,
+table tr td {
+	text-align: start;
+	color: #646464 !important;
+}
+
+/* Table global search css */
+.search-group {
+	width: 100%;
+	margin-bottom: 10px;
+}
+
+.search-container {
+	display: flex;
+	align-items: center;
+	border: 1px solid #ebebeb;
+	padding: 5px;
+	background-color: white;
+	border-radius: 5px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-icon {
+	font-size: 22px;
+}
+
+.search-input {
+	flex: 1;
+	border: none;
+	outline: none;
+}
+
+.form-control:focus {
+	box-shadow: none;
+}

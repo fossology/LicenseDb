@@ -1,0 +1,15 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.nav-item {
+	display: flex;
+}
+.nav-item > :first-child {
+	width: 100%;
+}
+.nav-item .nav-link {
+	border-radius: 0;
+}

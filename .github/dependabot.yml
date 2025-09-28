@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: © 2025 Siemens AG
+# SPDX-FileContributor: Kaushlendra Pratap <kaushlendra-pratap.singh@siemens.com>
+
+# SPDX-License-Identifier: GPL-2.0-only
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/Frontend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(actions)"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  - package-ecosystem: "npm"
+    directory: "/Frontend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(npm)"
+    labels:
+      - "dependencies"
+      - "npm"

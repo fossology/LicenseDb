@@ -1,0 +1,166 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.tooltip-icon span {
+	cursor: pointer;
+	color: #ad4dc6;
+	font-size: 19px;
+}
+
+/* Submenu */
+.sub-menu-wrapper {
+	flex-flow: column;
+	justify-content: flex-end;
+}
+.sub-menu-wrapper .nav-link {
+	border: 1px solid rgb(24, 119, 242);
+	border-bottom: 4px solid rgb(24, 119, 242);
+	padding: 2px 15px;
+	margin-bottom: 4px;
+	border-radius: 7px;
+	font-size: 15px;
+	position: relative;
+	color: rgb(24, 119, 242);
+}
+.sub-menu-wrapper .submenu-icon {
+	margin-right: 5px;
+}
+.sub-menu-wrapper .import {
+	color: rgb(24, 242, 75) !important;
+}
+.sub-menu-wrapper .export {
+	color: rgb(242, 138, 24) !important;
+}
+
+/* Customized button */
+.button {
+	cursor: pointer;
+	border: none;
+	padding: 5px 10px;
+	display: inline-flex;
+	align-items: center;
+	margin: 0;
+	border-radius: 4px;
+	box-shadow: 0 2px 4px rgb(0 0 0 / 22%);
+}
+.button p {
+	color: white;
+	margin: 0;
+}
+.button-primary {
+	background-color: rgb(42 131 247);
+}
+.button-primary:hover {
+	background-color: rgb(4, 113, 255);
+}
+.button .icon-container {
+	font-size: 18px;
+	color: white;
+	margin-right: 3px;
+}
+
+/* class for buttons with more side paddings */
+.wide {
+	padding: 3px 15px;
+}
+
+/* red border, white background */
+.button-red-border {
+	background-color: #fff;
+	border: 1px solid rgb(209, 9, 9);
+}
+.button-red-border:hover {
+	background-color: rgb(209, 9, 9);
+	border: 1px solid #fff;
+}
+.button-red-border > p {
+	color: rgb(209, 9, 9);
+}
+.button-red-border:hover > p {
+	color: #fff;
+}
+
+/* red border, white background */
+.button-green-border {
+	background-color: #fff;
+	border: 1px solid;
+	border-image: linear-gradient(to right, rgb(7, 199, 109), rgb(17, 158, 92));
+	border-image-slice: 1;
+	box-shadow: none;
+}
+.button-green-border:hover {
+	background: rgb(7, 199, 109);
+	box-shadow: 0 2px 4px rgb(0 0 0 / 22%);
+}
+.button-green-border > p {
+	color: rgb(17, 158, 92);
+}
+.button-green-border:hover > p {
+	color: #fff;
+}
+.button-green-border .icon-container {
+	font-size: 18px;
+	color: rgb(7, 199, 109);
+	margin-right: 3px;
+}
+.button-green-border:hover .icon-container {
+	font-size: 18px;
+	color: #fff;
+	margin-right: 3px;
+}
+
+/* Classification dropdown */
+.option-yellow {
+	background-color: yellow;
+}
+.option-green {
+	background-color: green;
+}
+.option-red {
+	background-color: red;
+}
+option::after {
+	display: inline-block;
+	width: 15px;
+	height: 15px;
+	margin-left: 5px;
+	vertical-align: middle;
+	border-radius: 3px;
+}
+
+.option-green::after {
+	background-color: green;
+}
+.option-red::after {
+	background-color: red;
+}
+.option-yellow::after {
+	background-color: yellow;
+}
+
+/* Pagination */
+.pagination {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+}
+
+.pagination span.icon {
+	font-size: 22px;
+	color: rgb(24, 119, 242);
+	cursor: pointer;
+}
+
+.pagination span.icon:hover {
+	font-weight: 600;
+	color: rgb(7, 99, 219);
+}
+
+.pagination select {
+	outline: none;
+	border: none;
+	color: gray;
+}

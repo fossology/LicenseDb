@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-2025 Kaushlendra Pratap <kaushlendra-pratap.singh@siemens.com>
 # SPDX-License-Identifier: GPL-2.0-only
 
-name: Build and Push Docker Image
+name: Build and Push Backend Docker Image
 
 on:
   push:
@@ -59,7 +59,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: ${{ github.event_name != 'pull_request' }}
-          context: .
+          context: ./Backend              
+          file: ./Backend/Dockerfile    
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

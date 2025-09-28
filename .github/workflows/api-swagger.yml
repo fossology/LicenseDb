@@ -13,45 +13,44 @@ jobs:
 
   doc-diff:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend  
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22'
-        check-latest: true
-        cache: true
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          check-latest: true
+          cache: true
 
-    - name: Code Generation
-      run: |
-        cp external_ref_fields.example.yaml external_ref_fields.yaml && go generate ./...
+      - name: Code Generation
+        run: cp external_ref_fields.example.yaml external_ref_fields.yaml && go generate ./...
 
-    - name: Install swag
-      run: |
-        go install github.com/swaggo/swag/cmd/swag@latest
+      - name: Install swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
 
-    - name: Build Swagger documents
-      run: |
-        swag init --parseDependency --generalInfo api.go --dir ./pkg/api,./pkg/auth,./pkg/db,./pkg/models,./pkg/utils --output ./swag/docs
+      - name: Build Swagger documents
+        run: swag init --parseDependency --generalInfo api.go --dir ./pkg/api,./pkg/auth,./pkg/db,./pkg/models,./pkg/utils --output ./swag/docs
 
-    - name: Check doc diff
-      run: |
-        diff swag/docs/docs.go cmd/laas/docs/docs.go > swagger-diff.txt || true
-          # Check if file swagger-diff.txt is empty
-          if [ -s swagger-diff.txt ]
-          then
-            # If file is not empty, print the diff content
+      - name: Check doc diff
+        run: |
+          diff swag/docs/docs.go cmd/laas/docs/docs.go > swagger-diff.txt || true
+          if [ -s swagger-diff.txt ]; then
             echo "--- Start of Swagger Diff ---"
             cat swagger-diff.txt
             echo "--- End of Swagger Diff ---"
-            # Then echo a message and exit 1
             echo "Swagger docs are not up to date. Please run 'swag init' and commit the changes."
             exit 1
           fi
 
   doc-fmt:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend  
     steps:
       - uses: actions/checkout@v3
 
@@ -63,13 +62,10 @@ jobs:
           cache: true
 
       - name: Install swag
-        run: |
-          go install github.com/swaggo/swag/cmd/swag@latest
+        run: go install github.com/swaggo/swag/cmd/swag@latest
 
       - name: Format Swagger documents
-        run: |
-          swag fmt --generalInfo ./pkg/api/api.go --dir ./pkg/api,./pkg/auth,./pkg/db,./pkg/models,./pkg/utils
+        run: swag fmt --generalInfo ./pkg/api/api.go --dir ./pkg/api,./pkg/auth,./pkg/db,./pkg/models,./pkg/utils
 
       - name: Check file diff
-        run: |
-          git diff --exit-code
+        run: git diff --exit-code
