@@ -15,7 +15,7 @@ FRONTEND_SERVICE=licensedb-ui
 POSTGRES_SERVICE=postgres
 
 # Declare all targets as phony (they don't create files with these names)
-.PHONY: help dev build test test-verbose test-coverage test-individual test-file test-func test-watch quick-test fmt lint clean deps create-migration migrate-up migrate-down migrate-force frontend-setup frontend-lint frontend-format frontend-build
+.PHONY: help dev build test test-verbose import-licenses test-coverage test-individual test-file test-func test-watch quick-test fmt lint clean deps create-migration migrate-up migrate-down migrate-force frontend-setup frontend-lint frontend-format frontend-build
 
 # Default target - show help
 help:
@@ -23,38 +23,40 @@ help:
 	@echo "========================================"
 	@echo ""
 	@echo "Development Commands:"
-	@echo "  make generate       - Generate Go structs from external_ref_fields.yaml"
-	@echo "  make build         - Build the Go application"
-	@echo "  make run            - Run backend server (go run)"
-	@echo "  make run-frontend   - Run frontend (npm start)"
-	@echo "  make run-all        - Run both backend and frontend"
-	@echo "  make help          - Display available commands (default target)"
+	@echo "  make generate             - Generate Go structs from external_ref_fields.yaml"
+	@echo "  make import-licenses      - Download licenseRef.json from Fossology and import licenses into the database (ensure DB is running)"
+	@echo "  make build                - Build the Go application"
+	@echo "  make run                  - Run backend server (go run)"
+	@echo "  make run-frontend         - Run frontend (npm start)"
+	@echo "  make run-all              - Run both backend and frontend"
+	@echo "  make help                 - Display available commands (default target)"
 	@echo ""
 	@echo "Testing Commands:"
-	@echo "  make test          - Run all API tests"
-	@echo "  make test-verbose  - Run tests with verbose output"
-	@echo "  make test-coverage - Run tests with coverage report (generates coverage.html)"
-	@echo "  make test-individual - Run each test file individually"
-	@echo "  make test-file FILE=filename - Run specific test file"
+	@echo "  make test                 - Run all API tests"
+	@echo "  make test-verbose         - Run tests with verbose output"
+	@echo "  make test-coverage        - Run tests with coverage report (generates coverage.html)"
+	@echo "  make test-individual      - Run each test file individually"
+	@echo "  make test-file FILE=NAME  - Run specific test file"
 	@echo ""
 	@echo "Code Quality Commands:"
-	@echo "  make fmt           - Format Go code"
-	@echo "  make lint          - Run golangci-lint on Backend"
-	@echo "  make frontend-lint - Run frontend linter"
-	@echo "  make frontend-format - Run frontend code formatter and linter auto-fix"
+	@echo "  make fmt                  - Format Go code"
+	@echo "  make lint                 - Run golangci-lint on Backend"
+	@echo "  make frontend-lint        - Run frontend linter"
+	@echo "  make frontend-format      - Run frontend code formatter and linter auto-fix"
 	@echo ""
 	@echo "Docker Commands:"
-	@echo "  make docker-build      - Build all Docker images"
-	@echo "  make docker-up         - Start all containers in detached mode"
-	@echo "  make docker-down       - Stop all containers"
-	@echo "  make docker-restart    - Rebuild and restart containers"
-	@echo "  make docker-logs       - Tail logs for all containers"
-	@echo "  make docker-logs-backend - Tail logs for backend only"
+	@echo "  make docker-build         - Build all Docker images"
+	@echo "  make docker-up            - Start all containers in detached mode"
+	@echo "  make docker-down          - Stop all containers"
+	@echo "  make docker-restart       - Rebuild and restart containers"
+	@echo "  make docker-logs          - Tail logs for all containers"
+	@echo "  make docker-logs-backend  - Tail logs for backend only"
 	@echo "  make docker-logs-frontend - Tail logs for frontend only"
-	@echo "  make docker-clean      - Remove containers, volumes, and networks"
+	@echo "  make docker-clean         - Remove containers, volumes, and networks"
+	@echo ""
 	@echo "Utility Commands:"
-	@echo "  make clean         - Clean test cache and temporary files"
-	@echo "  make deps          - Install and tidy Go and Node.js dependencies"
+	@echo "  make clean                - Clean test cache and temporary files"
+	@echo "  make deps                 - Install and tidy Go and Node.js dependencies"
 	@echo ""
 	@echo "Database Migration Commands:"
 	@echo "  make create-migration     - Create a new database migration file"
@@ -84,20 +86,40 @@ build:
 
 # Run the application
 run:
-	@echo "Running LicenseDB backend..."
-	cd Backend && go run ./cmd/laas/main.go
-	@echo "LicenseDB backend stopped"
-
+	@read -p "Populate DB? (true/false): " populate; \
+	echo " Running LicenseDB backend..."; \
+	if [ "$$populate" = "true" ]; then \
+		if [ ! -f Backend/licenseRef.json ]; then \
+			read -p "licenseRef.json not found. Do you want to import licenses? (y/n): " runimport; \
+			if [ "$$runimport" = "y" ]; then \
+				$(MAKE) import-licenses; \
+			else \
+				echo "Skipping license import. Backend will run without populated DB."; \
+				cd Backend && go run ./cmd/laas/main.go --populatedb=false & \
+			fi \
+		else \
+			echo "licenseRef.json exists. Running backend with populated DB..."; \
+			cd Backend && go run ./cmd/laas/main.go --populatedb=true & \
+		fi \
+	else \
+		cd Backend && go run ./cmd/laas/main.go & \
+	fi
 run-frontend:
 	@echo "Running Frontend..."
 	@cd Frontend && npm start
 	@echo "Frontend stopped"
-	
-run-all:
-	@echo "Running Backend and Frontend..."
-	@cd Backend && go run ./cmd/laas/main.go &
-	@cd Frontend && npm start
 
+run-all:
+	@$(MAKE) run
+	@$(MAKE) run-frontend
+
+import-licenses:
+	@echo "Downloading licenseRef.json from Fossology..."
+	@wget -q https://raw.githubusercontent.com/fossology/fossology/master/install/db/licenseRef.json -O Backend/licenseRef.json
+	@echo "Download complete: Backend/licenseRef.json"
+	@echo "Importing licenses into database..."
+	cd Backend && go run ./cmd/laas/main.go --populatedb=true
+	@echo "Licenses imported successfully!"
 # ==============================================================================
 # Testing Commands
 # ==============================================================================
@@ -176,6 +198,7 @@ clean:
 	@echo "Cleaning test cache and temporary files..."
 	cd Backend && go clean -testcache
 	cd Backend && rm -f coverage.out coverage.html
+	cd Backend && rm -f Backend/licenseRef.json
 	@echo "Cleanup complete"
 
 # Install and tidy Go dependencies
