@@ -1,0 +1,50 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+	SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+*/
+
+body {
+	margin: 0;
+	font-family: 'Public Sans', sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	color: gray;
+	background-color: rgb(249, 250, 251);
+	overflow-x: hidden;
+}
+
+code {
+	font-family:
+		source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+.nav-item > a {
+	color: #707f8d !important;
+}
+
+.nav-item > a.active {
+	color: white !important;
+	background-color: #c7283e !important;
+}
+
+.table-header {
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	align-items: center;
+}
+
+.content {
+	min-height: 730px;
+}
+
+.header-title {
+	text-align: center;
+	font-weight: bold;
+	border-bottom: 1px dashed rgb(76, 153, 253);
+	color: gray;
+	padding: 5px;
+	margin-bottom: 10px;
+}

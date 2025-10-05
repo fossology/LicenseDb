@@ -1,0 +1,19 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+	SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+*/
+
+div.App {
+	text-align: center;
+}
+
+.main-container {
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-top: 10px;
+
+	/* space for showing the footer */
+	margin-bottom: 60px;
+}

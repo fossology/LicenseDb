@@ -1,0 +1,61 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.link-container {
+	display: flex;
+	justify-content: center;
+}
+.link-group {
+	display: flex;
+	justify-content: center;
+	margin: 15px 0;
+}
+.link-container .link {
+	cursor: pointer;
+	text-decoration: none;
+	border: 1px solid #bbbbbb;
+	color: gray;
+	background: #fff;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	padding: 2px 15px;
+	font-size: 15px;
+	margin-right: 8px;
+	outline: 1px solid transparent; /* Add this line */
+	transition: outline 0.2s; /* Smooth transition */
+}
+.link-container .link:hover,
+.link-container .link.active {
+	outline: 2px solid #bbbbbb;
+	background: #fefefe;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.link-container .icon {
+	margin-right: 5px;
+}
+.link-container .import {
+	color: rgb(17, 158, 92) !important;
+}
+.link-container .export {
+	color: rgb(242, 138, 24) !important;
+}
+
+.operation-main {
+	display: flex;
+	justify-content: center;
+	height: auto;
+}
+.operation-container {
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	border-radius: 0;
+	flex-grow: 1;
+}
+.operation-container .button-wrapper {
+	margin-top: 15px;
+	margin-bottom: 10px;
+}
+.operation-container h6 {
+	font-weight: 700;
+}

@@ -1,0 +1,19 @@
+version = 1
+root = "."
+
+# --- Frontend Annotations ---
+[[annotations]]
+path = "Frontend/package.json"
+SPDX-FileCopyrightText = "© Fossology contributors"
+SPDX-License-Identifier = "FSFAP"
+
+[[annotations]]
+path = "Frontend/package-lock.json"
+SPDX-FileCopyrightText = "© Fossology contributors"
+SPDX-License-Identifier = "FSFAP"
+
+# --- Backend Annotations ---
+[[annotations]]
+path = "Backend/cmd/laas/docs/*"
+SPDX-FileCopyrightText = "Fossology contributors"
+SPDX-License-Identifier = "GPL-2.0-only"

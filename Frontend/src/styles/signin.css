@@ -1,0 +1,38 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.form-group-text {
+	display: flex;
+	flex-flow: column;
+	text-align: left;
+	margin-bottom: 0 !important;
+}
+
+.signin-form {
+	width: 30%;
+	margin: 0 auto;
+	position: relative;
+	top: 70px;
+	border: 1px solid rgb(190, 190, 190);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.signin-form h4 {
+	text-align: center;
+}
+
+.signin-form button {
+	margin-top: 5px;
+}
+
+.signin-form .form-fields {
+	margin-bottom: 5px;
+}
+
+#go-back:hover,
+#go-back:active {
+	color: #c7283e !important;
+}

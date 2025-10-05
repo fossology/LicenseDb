@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: FSFAP
+# SPDX-FileCopyrightText: © 2025 Siemens AG
+# SPDX-FileContributor: Dearsh Oberoi <dearsh.oberoi@siemens.com>
+
+node_modules/
+.env
+package-lock.json
+.npm/
+dist/
+build/

@@ -1,0 +1,47 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.create-form-parent Label {
+	display: flex;
+	flex-flow: column;
+	text-align: left;
+	margin-bottom: 0 !important;
+}
+
+.create-form-parent {
+	padding: 15px 50px;
+	background-color: #fff;
+	color: rgb(42, 49, 56);
+	border: 1px solid #b5b5b5;
+	border-radius: 5px;
+}
+
+.create-form-parent button {
+	margin-top: 5px;
+}
+
+.create-form-parent input:hover {
+	border: 1px solid rgb(33, 43, 54);
+}
+
+.create-form-parent .text-area {
+	height: 70vh;
+}
+
+.create-form-parent .form-fields {
+	margin-bottom: 7px;
+}
+
+.form-checkboxes {
+	margin-top: 5px;
+	margin-bottom: 7px;
+}
+
+/* create license - external imported fields */
+div.ext-fields {
+	margin: 10px 0px;
+	padding: 15px 0px;
+}

@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Divij Sharma <divijs75@gmail.com>
 # SPDX-License-Identifier: GPL-2.0-only
+# SPDX-FileCopyrightText:  2025 Chayan Das <01chayandas@gmail.com>
 
 name: Static Checks and Linting
 
@@ -17,6 +18,10 @@ on:
 jobs:
   golangci-lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+
     steps:
     - uses: actions/checkout@v4
 
@@ -30,8 +35,9 @@ jobs:
     - name: Code Generation
       run: cp external_ref_fields.example.yaml external_ref_fields.yaml && go generate ./...
 
-    - name: lint
+    - name: Lint
       uses: golangci/golangci-lint-action@v6
       with:
-          version: v1.62.2
-
+        version: v1.62.2
+        working-directory: Backend   
+        args: ./...

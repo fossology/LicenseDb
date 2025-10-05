@@ -5,7 +5,8 @@ services:
     container_name: licensedb
     image: "ghcr.io/fossology/licensedb:latest"
     build:
-      context: .
+      context: ./Backend
+      dockerfile: Dockerfile
     environment:
       DB_PASSWORD: fossy
       DB_HOST: postgres
@@ -24,6 +25,11 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - licensedb-network
   postgres:
@@ -34,7 +40,7 @@ services:
       POSTGRES_USER: fossy
       POSTGRES_DB: licensedb
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -45,8 +51,29 @@ services:
       retries: 5
     networks:
       - licensedb-network
+  licensedb-ui:
+    container_name: licensedb-ui
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    image: ghcr.io/fossology/licensedb-ui:latest
+    environment:
+      REACT_APP_BASE_URL: http://localhost:8080/api/v1
+      REACT_APP_DOMAIN_SUBDIRECTORY: ''
+      PUBLIC_URL: http://localhost:3000
+      REACT_APP_PROVIDER: password
+    ports:
+      - "3000:3000"
+    depends_on:
+      licensedb:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - licensedb-network  
 networks:
   licensedb-network:
     driver: bridge
 volumes:
   pgdata:
+
+

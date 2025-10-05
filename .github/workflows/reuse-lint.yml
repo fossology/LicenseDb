@@ -17,9 +17,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  REUSE-Compliance-Check:
+  reuse-compliance:
+    name: REUSE Compliance
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: REUSE Compliance Check
-      uses: fsfe/reuse-action@v1
+      - uses: actions/checkout@v5
+      - name: REUSE Compliance Check
+        uses: fsfe/reuse-action@v5

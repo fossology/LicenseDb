@@ -1,0 +1,109 @@
+/*
+	SPDX-License-Identifier: GPL-2.0-only
+	SPDX-FileCopyrightText: © 2025 Siemens AG
+	SPDX-FileContributor: Sourav Bhowmik <sourav.bhowmik@siemens.com>
+*/
+
+.detail-form-parent {
+	padding: 10px 20px;
+	background-color: #fff;
+	color: rgb(42, 49, 56);
+	border: 1px solid #ebebeb;
+	border-radius: 5px;
+}
+
+.detail-form-parent label {
+	text-align: left;
+	margin-bottom: 0;
+}
+
+.detail-form-parent .row {
+	margin-bottom: 7px;
+}
+
+.detail-form-parent .form-group-text {
+	display: flex;
+	flex-flow: column;
+}
+
+.form-group-text input[type='text'] {
+	box-sizing: border-box;
+	border-radius: 8px;
+	color: rgb(33, 43, 54);
+	line-height: 1.4375em;
+}
+
+.form-group-text input:hover {
+	border: 1px solid rgb(33, 43, 54);
+}
+
+.form-group-text input:hover {
+	border: 1px solid rgb(33, 43, 54);
+}
+
+.form-group-text .text-area {
+	height: 40vh;
+}
+
+.obligation-form .text-area {
+	height: 30vh;
+}
+
+.form-group-text .obligation-overviews {
+	display: flex;
+	justify-content: space-between;
+}
+a.obli-overview {
+	color: rgb(42 131 247);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.modal-body {
+	background-color: rgb(243 243 243);
+}
+.modal-item {
+	background: #fff;
+	padding: 5px 15px;
+	border: 1px solid #bbbbbb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.modal-item:not(:last-child) {
+	margin-bottom: 15px;
+}
+.modal-item .type-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 4px;
+}
+.modal-item .type-header .icon-wrapper {
+	margin-right: 4px;
+	font-size: 17px;
+	color: #d1be37;
+}
+.modal-item h4 {
+	font-weight: bold;
+	margin-bottom: 0px;
+}
+.modal-item h6 {
+	display: inline-block;
+	padding: 4px;
+	margin-bottom: 5px;
+	background-color: rgb(243 243 243);
+	border: 1px solid #bbbbbb;
+}
+.modal-item p {
+	padding: 5px 0px;
+	border-top: 1px dotted #bbbbbb;
+}
+.modal-title-icon {
+	color: #ad4dc6;
+	position: relative;
+	bottom: 2px;
+}
+
+.detail-form-parent .form-group-checkbox {
+	display: flex;
+	justify-content: flex-start;
+}
