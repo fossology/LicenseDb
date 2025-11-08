@@ -348,7 +348,7 @@ func UpdateLicense(c *gin.Context) {
 		userId := c.MustGet("userId").(int64)
 
 		shortname := c.Param("shortname")
-		if err := tx.Where(models.LicenseDB{Shortname: &shortname}).First(&oldLicense).Error; err != nil {
+		if err := tx.Preload("Obligations").Where(models.LicenseDB{Shortname: &shortname}).First(&oldLicense).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusNotFound,
 				Message:   fmt.Sprintf("license with shortname '%s' not found", shortname),
@@ -358,6 +358,19 @@ func UpdateLicense(c *gin.Context) {
 			}
 			c.JSON(http.StatusNotFound, er)
 			return err
+		}
+
+		// Check for an empty request body
+		if c.Request.ContentLength == 0 {
+			res := models.LicenseResponse{
+				Data:   []models.LicenseResponseDTO{oldLicense.ConvertToLicenseResponseDTO()},
+				Status: http.StatusOK,
+				Meta: &models.PaginationMeta{
+					ResourceCount: 1,
+				},
+			}
+			c.JSON(http.StatusOK, res)
+			return nil
 		}
 
 		if err := c.ShouldBindJSON(&updates); err != nil {
@@ -403,20 +416,49 @@ func UpdateLicense(c *gin.Context) {
 			newLicense.TextSetBy = &textSetBy
 		}
 
-		// Overwrite values of existing keys, add new key value pairs and remove keys with null values.
-		if err := tx.Model(&models.LicenseDB{}).Where(models.LicenseDB{Id: oldLicense.Id}).UpdateColumn("external_ref", gorm.Expr("jsonb_strip_nulls(COALESCE(external_ref, '{}'::jsonb) || ?)", updates.ExternalRef)).Error; err != nil {
-			er := models.LicenseError{
-				Status:    http.StatusInternalServerError,
-				Message:   "Failed to update license",
-				Error:     err.Error(),
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusInternalServerError, er)
-			return err
+		// Use a map to update only the fields provided in the request body
+		updateMap := make(map[string]interface{})
+		if updates.Fullname != nil {
+			updateMap["rf_fullname"] = updates.Fullname
+		}
+		if updates.Text != nil {
+			updateMap["rf_text"] = updates.Text
+		}
+		if updates.Url != nil {
+			updateMap["rf_url"] = updates.Url
+		}
+		if updates.Copyleft != nil {
+			updateMap["rf_copyleft"] = updates.Copyleft
+		}
+		if updates.OSIapproved != nil {
+			updateMap["rf_osiapproved"] = updates.OSIapproved
+		}
+		if updates.Notes != nil {
+			updateMap["rf_notes"] = updates.Notes
+		}
+		if updates.TextUpdatable != nil {
+			updateMap["rf_text_updatable"] = updates.TextUpdatable
+		}
+		if updates.Active != nil {
+			updateMap["rf_active"] = updates.Active
+		}
+		if updates.Source != nil {
+			updateMap["rf_source"] = updates.Source
+		}
+		if updates.SpdxId != nil {
+			updateMap["rf_spdx_id"] = updates.SpdxId
+		}
+		if updates.Risk != nil {
+			updateMap["rf_risk"] = updates.Risk
+		}
+		if newLicense.TextSetBy != nil {
+			updateMap["rf_flag"] = newLicense.TextSetBy
+		}
+		if updates.ExternalRef != nil {
+			updateMap["external_ref"] = gorm.Expr("jsonb_strip_nulls(COALESCE(external_ref, '{}'::jsonb) || ?)", updates.ExternalRef)
 		}
 
-		if err := tx.Omit("ExternalRef", "Obligations", "User", "Shortname").Where(models.LicenseDB{Id: oldLicense.Id}).Updates(&newLicense).Error; err != nil {
+		if err := tx.Model(&models.LicenseDB{}).Where(models.LicenseDB{Id: oldLicense.Id}).Updates(updateMap).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusInternalServerError,
 				Message:   "Failed to update license",
@@ -431,7 +473,7 @@ func UpdateLicense(c *gin.Context) {
 		if err := tx.Preload("User").Preload("Obligations").Where(models.LicenseDB{Id: oldLicense.Id}).First(&newLicense).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusInternalServerError,
-				Message:   "Failed to update license",
+				Message:   "Failed to fetch updated license",
 				Error:     err.Error(),
 				Path:      c.Request.URL.Path,
 				Timestamp: time.Now().Format(time.RFC3339),
