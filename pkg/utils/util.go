@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -29,6 +30,8 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"github.com/fossology/LicenseDb/pkg/db"
+	"github.com/fossology/LicenseDb/pkg/email"
+	logger "github.com/fossology/LicenseDb/pkg/log"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/validations"
 )
@@ -202,9 +205,11 @@ func InsertOrUpdateLicenseOnImport(license *models.LicenseDB, externalRefs *mode
 	})
 
 	if importStatus == IMPORT_FAILED {
-		red := "\033[31m"
-		reset := "\033[0m"
-		log.Printf("%s%s: %s%s", red, *license.Shortname, message, reset)
+		logger.LogError("License import failed",
+			zap.String("license", *license.Shortname),
+			zap.String("reason", message),
+		)
+
 	} else {
 		green := "\033[32m"
 		reset := "\033[0m"
@@ -494,6 +499,7 @@ func Populatedb(datafile string) {
 	if err := db.DB.Where(&models.User{UserLevel: &level}).First(&user).Error; err != nil {
 		log.Fatalf("Failed to find a super admin")
 	}
+	var total, success, failed int
 
 	for _, license := range licenses {
 		result := license.Converter()
@@ -511,6 +517,13 @@ func Populatedb(datafile string) {
 			continue
 		}
 		_, _ = InsertOrUpdateLicenseOnImport(&lic, &models.UpdateExternalRefsJSONPayload{ExternalRef: make(map[string]interface{})}, user.Id)
+	}
+	if email.Email != nil && email.Email.IsRunning() {
+		userName := *user.UserName
+		userEmail := *user.UserEmail
+		email.NotifyImportSummary(userEmail, userName, "license", total, success, failed)
+	} else {
+		logger.LogInfo("SMTP disabled or not reachable. Skipping email.")
 	}
 
 	DEFAULT_OBLIGATION_TYPES := []*models.ObligationType{
