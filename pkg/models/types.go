@@ -19,6 +19,7 @@ import (
 
 	"github.com/fossology/LicenseDb/pkg/validations"
 	"github.com/go-playground/validator/v10"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -260,20 +261,21 @@ type ObligationClassificationResponse struct {
 
 // Obligation represents an obligation record in the database.
 type Obligation struct {
-	Id                         int64                     `gorm:"primary_key;column:id" `
-	Topic                      *string                   `gorm:"column:topic"`
-	Text                       *string                   `gorm:"column:text"`
-	Modifications              *bool                     `gorm:"column:modifications;default:false"`
-	Comment                    *string                   `gorm:"column:comment"`
-	Active                     *bool                     `gorm:"column:active;default:true"`
-	TextUpdatable              *bool                     `gorm:"column:text_updatable;default:false" `
-	Md5                        string                    `gorm:"column:md5"`
-	ObligationClassificationId int64                     `gorm:"column:obligation_classification_id"`
-	ObligationTypeId           int64                     `gorm:"column:obligation_type_id"`
-	Licenses                   []*LicenseDB              `gorm:"many2many:obligation_licenses; joinForeignKey:obligation_id;joinReferences: license_db_id "`
-	Type                       *ObligationType           `gorm:"foreignKey:ObligationTypeId; references:Id"`
-	Classification             *ObligationClassification `gorm:"foreignKey:ObligationClassificationId ;references:Id"`
-	Category                   *string                   `json:"category" gorm:"default:GENERAL" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
+	Id                         int64                                         `gorm:"primary_key;column:id" `
+	Topic                      *string                                       `gorm:"column:topic"`
+	Text                       *string                                       `gorm:"column:text"`
+	Modifications              *bool                                         `gorm:"column:modifications;default:false"`
+	Comment                    *string                                       `gorm:"column:comment"`
+	Active                     *bool                                         `gorm:"column:active;default:true"`
+	TextUpdatable              *bool                                         `gorm:"column:text_updatable;default:false" `
+	Md5                        string                                        `gorm:"column:md5"`
+	ObligationClassificationId int64                                         `gorm:"column:obligation_classification_id"`
+	ObligationTypeId           int64                                         `gorm:"column:obligation_type_id"`
+	Licenses                   []*LicenseDB                                  `gorm:"many2many:obligation_licenses; joinForeignKey:obligation_id;joinReferences: license_db_id "`
+	Type                       *ObligationType                               `gorm:"foreignKey:ObligationTypeId; references:Id"`
+	Classification             *ObligationClassification                     `gorm:"foreignKey:ObligationClassificationId ;references:Id"`
+	Category                   *string                                       `gorm:"default:GENERAL" enums:"DISTRIBUTION,PATENT,INTERNAL,CONTRACTUAL,EXPORT_CONTROL,GENERAL" example:"DISTRIBUTION"`
+	ExternalRef                datatypes.JSONType[ObligationSchemaExtension] `gorm:"column:external_ref"`
 }
 
 func (Obligation) TableName() string {
@@ -441,6 +443,7 @@ func (o *Obligation) BeforeUpdate(tx *gorm.DB) (err error) {
 
 // Custom json marshaller and unmarshaller for Obligation
 func (o *Obligation) MarshalJSON() ([]byte, error) {
+	externalRef := o.ExternalRef.Data()
 	ob := ObligationDTO{
 		Topic:         o.Topic,
 		Text:          o.Text,
@@ -450,6 +453,7 @@ func (o *Obligation) MarshalJSON() ([]byte, error) {
 		TextUpdatable: o.TextUpdatable,
 		Shortnames:    []string{},
 		Category:      o.Category,
+		ExternalRef:   &externalRef,
 	}
 
 	if o.Type != nil {
@@ -512,34 +516,40 @@ func (o *Obligation) UnmarshalJSON(data []byte) error {
 		})
 	}
 
+	if dto.ExternalRef != nil {
+		o.ExternalRef = datatypes.NewJSONType(*dto.ExternalRef)
+	}
+
 	return nil
 }
 
 // ObligationDTO represents an obligation json object.
 type ObligationDTO struct {
-	Topic          *string  `json:"topic" example:"copyleft" validate:"required"`
-	Type           *string  `json:"type" example:"RISK" validate:"required"`
-	Text           *string  `json:"text" example:"Source code be made available when distributing the software." validate:"required"`
-	Classification *string  `json:"classification" example:"GREEN" validate:"required"`
-	Modifications  *bool    `json:"modifications" example:"true"`
-	Comment        *string  `json:"comment"`
-	Active         *bool    `json:"active"`
-	TextUpdatable  *bool    `json:"text_updatable" example:"true"`
-	Shortnames     []string `json:"shortnames" validate:"required" example:"GPL-2.0-only,GPL-2.0-or-later"`
-	Category       *string  `json:"category" example:"DISTRIBUTION" validate:"required"`
+	Topic          *string                    `json:"topic" example:"copyleft" validate:"required"`
+	Type           *string                    `json:"type" example:"RISK" validate:"required"`
+	Text           *string                    `json:"text" example:"Source code be made available when distributing the software." validate:"required"`
+	Classification *string                    `json:"classification" example:"GREEN" validate:"required"`
+	Modifications  *bool                      `json:"modifications" example:"true"`
+	Comment        *string                    `json:"comment"`
+	Active         *bool                      `json:"active"`
+	TextUpdatable  *bool                      `json:"text_updatable" example:"true"`
+	Shortnames     []string                   `json:"shortnames" validate:"required" example:"GPL-2.0-only,GPL-2.0-or-later"`
+	Category       *string                    `json:"category" example:"DISTRIBUTION" validate:"required"`
+	ExternalRef    *ObligationSchemaExtension `json:"external_ref"`
 }
 
 // ObligationUpdateDTO represents an obligation json object.
 type ObligationUpdateDTO struct {
-	Topic          *string `json:"-" example:"copyleft"`
-	Type           *string `json:"type" example:"RISK"`
-	Text           *string `json:"text" example:"Source code be made available when distributing the software."`
-	Classification *string `json:"classification" example:"GREEN"`
-	Modifications  *bool   `json:"modifications" example:"true"`
-	Comment        *string `json:"comment"`
-	Active         *bool   `json:"active"`
-	TextUpdatable  *bool   `json:"text_updatable" example:"true"`
-	Category       *string `json:"category" example:"DISTRIBUTION"`
+	Topic          *string                `json:"-" example:"copyleft"`
+	Type           *string                `json:"type" example:"RISK"`
+	Text           *string                `json:"text" example:"Source code be made available when distributing the software."`
+	Classification *string                `json:"classification" example:"GREEN"`
+	Modifications  *bool                  `json:"modifications" example:"true"`
+	Comment        *string                `json:"comment"`
+	Active         *bool                  `json:"active"`
+	TextUpdatable  *bool                  `json:"text_updatable" example:"true"`
+	Category       *string                `json:"category" example:"DISTRIBUTION"`
+	ExternalRef    map[string]interface{} `json:"external_ref"`
 }
 
 func (obDto *ObligationUpdateDTO) Converter() *Obligation {
