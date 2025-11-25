@@ -427,6 +427,19 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
+    WHERE conname = 'obligation_licenses_pkey'
+  ) THEN
+    ALTER TABLE obligation_licenses 
+      ADD CONSTRAINT obligation_licenses_pkey
+      PRIMARY KEY (obligation_id, license_db_id);
+  END IF;
+END$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
     WHERE conname ='oidc_clients_pkey'
   ) THEN
     ALTER TABLE oidc_clients ADD CONSTRAINT oidc_clients_pkey PRIMARY KEY (id);

@@ -36,7 +36,7 @@ UPDATE oidc_clients SET uuid = uuid_generate_v4() WHERE uuid IS NULL;
 
 ALTER TABLE license_dbs ADD COLUMN IF NOT EXISTS user_uuid UUID;
 UPDATE license_dbs SET user_uuid = (SELECT uuid from users WHERE license_dbs.user_id = users.id);
-ALTER TABLE license_dbs ALTER COLUMN user_id SET NOT NULL;
+ALTER TABLE license_dbs ALTER COLUMN user_uuid SET NOT NULL;
 
 ALTER TABLE obligations ADD COLUMN IF NOT EXISTS obligation_classification_uuid UUID;
 UPDATE obligations SET obligation_classification_uuid = (SELECT uuid from obligation_classifications 
@@ -357,6 +357,19 @@ BEGIN
     WHERE conname ='fk_obligation_licenses_license_db'
   ) THEN
     ALTER TABLE obligation_licenses ADD CONSTRAINT fk_obligation_licenses_license_db FOREIGN KEY (license_db_id) REFERENCES license_dbs(rf_id);
+  END IF;
+END$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'obligation_licenses_pkey'
+  ) THEN
+    ALTER TABLE obligation_licenses 
+      ADD CONSTRAINT obligation_licenses_pkey
+      PRIMARY KEY (obligation_id, license_db_id);
   END IF;
 END$$;
 
