@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -280,7 +281,21 @@ func UpdateObligation(c *gin.Context) {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		// https://gorm.io/docs/context.html#Context-in-Hooks-x2F-Callbacks
 		ctx := context.WithValue(context.Background(), models.ContextKey("oldObligation"), &oldObligation)
-		if err := tx.WithContext(ctx).Omit("Licenses", "Topic").Updates(&newObligation).Error; err != nil {
+
+		if err := tx.WithContext(ctx).Omit("Licenses", "Topic", "ExternalRef").Updates(&newObligation).Error; err != nil {
+			return err
+		}
+
+		// Overwrite values of existing keys, add new key value pairs and remove keys with null values.
+		if err := tx.Debug().Model(&models.Obligation{}).Where(&models.Obligation{Id: newObligation.Id}).UpdateColumn("external_ref", gorm.Expr("jsonb_strip_nulls(COALESCE(external_ref, '{}'::jsonb) || ?)", updates.ExternalRef)).Error; err != nil {
+			er := models.LicenseError{
+				Status:    http.StatusInternalServerError,
+				Message:   "Failed to update license",
+				Error:     err.Error(),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusInternalServerError, er)
 			return err
 		}
 
@@ -682,6 +697,32 @@ func addChangelogsForObligation(tx *gorm.DB, userId int64,
 	utils.AddChangelog("Active", oldObligation.Active, newObligation.Active, &changes)
 
 	utils.AddChangelog("Text Updatable", oldObligation.TextUpdatable, newObligation.TextUpdatable, &changes)
+
+	oldLicenseExternalRef := oldObligation.ExternalRef.Data()
+	oldExternalRefVal := reflect.ValueOf(oldLicenseExternalRef)
+	typesOf := oldExternalRefVal.Type()
+
+	newLicenseExternalRef := newObligation.ExternalRef.Data()
+	newExternalRefVal := reflect.ValueOf(newLicenseExternalRef)
+
+	for i := 0; i < oldExternalRefVal.NumField(); i++ {
+		fieldName := typesOf.Field(i).Name
+
+		switch typesOf.Field(i).Type.String() {
+		case "*boolean":
+			oldFieldPtr, _ := oldExternalRefVal.Field(i).Interface().(*bool)
+			newFieldPtr, _ := newExternalRefVal.Field(i).Interface().(*bool)
+			utils.AddChangelog(fmt.Sprintf("External Reference %s", fieldName), oldFieldPtr, newFieldPtr, &changes)
+		case "*string":
+			oldFieldPtr, _ := oldExternalRefVal.Field(i).Interface().(*string)
+			newFieldPtr, _ := newExternalRefVal.Field(i).Interface().(*string)
+			utils.AddChangelog(fmt.Sprintf("External Reference %s", fieldName), oldFieldPtr, newFieldPtr, &changes)
+		case "*int":
+			oldFieldPtr, _ := oldExternalRefVal.Field(i).Interface().(*int)
+			newFieldPtr, _ := newExternalRefVal.Field(i).Interface().(*int)
+			utils.AddChangelog(fmt.Sprintf("External Reference %s", fieldName), oldFieldPtr, newFieldPtr, &changes)
+		}
+	}
 
 	if len(changes) != 0 {
 		audit := models.Audit{
