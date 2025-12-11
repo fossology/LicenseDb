@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -20,17 +19,16 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
-	"golang.org/x/crypto/bcrypt"
-
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-
 	"github.com/fossology/LicenseDb/pkg/db"
+	logger "github.com/fossology/LicenseDb/pkg/log"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/validations"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -202,13 +200,16 @@ func InsertOrUpdateLicenseOnImport(license *models.LicenseDB, externalRefs *mode
 	})
 
 	if importStatus == IMPORT_FAILED {
-		red := "\033[31m"
-		reset := "\033[0m"
-		log.Printf("%s%s: %s%s", red, *license.Shortname, message, reset)
+		logger.LogError("License import failed",
+			zap.String("shortname", *license.Shortname),
+			zap.String("message", message),
+		)
+
 	} else {
-		green := "\033[32m"
-		reset := "\033[0m"
-		log.Printf("%sImport for license '%s' successful%s", green, *license.Shortname, reset)
+		logger.LogInfo("License import successful",
+			zap.String("shortname", *license.Shortname),
+		)
+
 	}
 	return message, importStatus
 }
@@ -482,32 +483,38 @@ func Populatedb(datafile string) {
 	// Read the content of the data file.
 	byteResult, err := os.ReadFile(datafile)
 	if err != nil {
-		log.Fatalf("Unable to read JSON file: %v", err)
+		logger.LogError("Unable to read JSON file", zap.Error(err))
 	}
 	// Unmarshal the JSON file data into a slice of LicenseJson structs.
 	if err := json.Unmarshal(byteResult, &licenses); err != nil {
-		log.Fatalf("error reading from json file: %v", err)
+		logger.LogError("error reading from json file", zap.Error(err))
+
 	}
 
 	user := models.User{}
 	level := "SUPER_ADMIN"
 	if err := db.DB.Where(&models.User{UserLevel: &level}).First(&user).Error; err != nil {
-		log.Fatalf("Failed to find a super admin")
+		logger.LogError("Failed to find a super admin")
 	}
 
 	for _, license := range licenses {
 		result := license.Converter()
 		if err := validations.Validate.Struct(&result); err != nil {
-			red := "\033[31m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", red, result.Shortname, fmt.Sprintf("field '%s' failed validation: %s\n", err.(validator.ValidationErrors)[0].Field(), err.(validator.ValidationErrors)[0].Tag()), reset)
+			validationErr := err.(validator.ValidationErrors)[0]
+			logger.LogError("License validation failed",
+				zap.String("shortname", result.Shortname),
+				zap.String("field", validationErr.Field()),
+				zap.String("tag", validationErr.Tag()),
+			)
+
 			continue
 		}
 		lic, err := result.ConvertToLicenseDB()
 		if err != nil {
-			red := "\033[31m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", red, *lic.Shortname, err.Error(), reset)
+			logger.LogError("License conversion failed",
+				zap.String("shortname", *lic.Shortname),
+				zap.Error(err),
+			)
 			continue
 		}
 		_, _ = InsertOrUpdateLicenseOnImport(&lic, &models.UpdateExternalRefsJSONPayload{ExternalRef: make(map[string]interface{})}, user.Id)
@@ -524,13 +531,16 @@ func Populatedb(datafile string) {
 		err, status := CreateObType(obType, user.Id)
 
 		if status == CREATED || status == CONFLICT {
-			green := "\033[32m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", green, obType.Type, "Obligation type created successfully", reset)
+			logger.LogInfo("Obligation type created successfully",
+				zap.String("type", obType.Type),
+			)
+
 		} else {
-			red := "\033[31m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", red, obType.Type, err.Error(), reset)
+			logger.LogError("Obligation type creation failed",
+				zap.String("type", obType.Type),
+				zap.Error(err),
+			)
+
 		}
 	}
 
@@ -545,13 +555,14 @@ func Populatedb(datafile string) {
 		err, status := CreateObClassification(obClassification, user.Id)
 
 		if status == CREATED || status == CONFLICT {
-			green := "\033[32m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", green, obClassification.Classification, "Obligation classification created successfully", reset)
+			logger.LogInfo("Obligation classification created successfully",
+				zap.String("classification", obClassification.Classification),
+			)
 		} else {
-			red := "\033[31m"
-			reset := "\033[0m"
-			log.Printf("%s%s: %s%s", red, obClassification.Classification, err.Error(), reset)
+			logger.LogError("Obligation classification creation failed",
+				zap.String("classification", obClassification.Classification),
+				zap.Error(err),
+			)
 		}
 	}
 }
@@ -566,15 +577,21 @@ func SetSimilarityThreshold() {
 		if parsed, err := strconv.ParseFloat(thresholdStr, 64); err == nil {
 			threshold = parsed
 		} else {
-			log.Printf("Invalid SIMILARITY_THRESHOLD '%s', using default %.1f", thresholdStr, defaultThreshold)
+			logger.LogWarn("Invalid SIMILARITY_THRESHOLD, using default",
+				zap.String("thresholdStr", thresholdStr),
+				zap.Float64("defaultThreshold", defaultThreshold),
+			)
 		}
 	} else {
-		log.Printf("SIMILARITY_THRESHOLD not set, using default %.1f", defaultThreshold)
+		logger.LogInfo("SIMILARITY_THRESHOLD not set, using default",
+			zap.Float64("defaultThreshold", defaultThreshold),
+		)
+
 	}
 
 	query := fmt.Sprintf("SET pg_trgm.similarity_threshold = %f", threshold)
 	if err := db.DB.Exec(query).Error; err != nil {
-		log.Println("Failed to set similarity threshold:", err)
+		logger.LogError("Failed to set similarity threshold", zap.Error(err))
 	}
 }
 
