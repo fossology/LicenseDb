@@ -10,12 +10,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"path/filepath"
 
 	"github.com/dave/jennifer/jen"
+	logger "github.com/fossology/LicenseDb/pkg/log"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -41,12 +42,12 @@ func main() {
 
 	fieldsMetadata, err := os.ReadFile(PATH_EXTERNAL_REF_CONFIG_FILE)
 	if err != nil {
-		log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+		logger.LogFatal("Failed to read external_ref_fields.yaml", zap.Error(err))
 	}
 
 	err = yaml.Unmarshal(fieldsMetadata, &externalRefFields)
 	if err != nil {
-		log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+		logger.LogFatal("Failed to parse external_ref_fields.yaml", zap.Error(err))
 	}
 
 	// REUSE-IgnoreStart
@@ -74,7 +75,7 @@ func main() {
 			err = fmt.Errorf("type %s in external_ref_fields.yaml is not supported", f.Type)
 		}
 		if err != nil {
-			log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+			logger.LogError("Failed to instantiate json schema for external ref in license", zap.Error(err))
 			return
 		}
 		field = field.Tag(map[string]string{"json": fmt.Sprintf("%s,omitempty", f.Name), "swaggerignore": "true"})
