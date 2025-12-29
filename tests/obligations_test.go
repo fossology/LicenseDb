@@ -90,11 +90,100 @@ func TestCreateObligation(t *testing.T) {
 		}
 		assertObligationCreated(t, dto)
 
-		// Try again with same topic
-		w := makeRequest("POST", "/obligations", dto, true)
-		if w.Code == http.StatusCreated {
-			t.Errorf("Expected error for duplicate topic, got 201")
+		dtoDuplicate := models.ObligationDTO{
+			Topic:          ptr("duplicate-topic"),
+			Type:           ptr("RIGHT"),
+			Text:           ptr("different text for same topic"),
+			Modifications:  ptr(false),
+			Classification: ptr("GREEN"),
+			Comment:        ptr("second insert with duplicate topic"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Shortnames:     []string{},
+			Category:       ptr("GENERAL"),
 		}
+		w := makeRequest("POST", "/obligations", dtoDuplicate, true)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var res models.LicenseError
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+
+		assert.Equal(t, http.StatusConflict, res.Status)
+		assert.Equal(t, "Duplicate topic error", res.Message)
+		assert.Contains(t, res.Error, "Obligation with topic 'duplicate-topic' already exists")
+	})
+
+	t.Run("DuplicateText", func(t *testing.T) {
+		dto := models.ObligationDTO{
+			Topic:          ptr("unique-topic-for-text-test"),
+			Type:           ptr("RIGHT"),
+			Text:           ptr("unique text for duplicate text test"),
+			Modifications:  ptr(false),
+			Classification: ptr("GREEN"),
+			Comment:        ptr("first insert"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Shortnames:     []string{},
+			Category:       ptr("GENERAL"),
+		}
+		assertObligationCreated(t, dto)
+
+		dtoDuplicate := models.ObligationDTO{
+			Topic:          ptr("different-topic-same-text"),
+			Type:           ptr("RIGHT"),
+			Text:           ptr("unique text for duplicate text test"),
+			Modifications:  ptr(false),
+			Classification: ptr("GREEN"),
+			Comment:        ptr("second insert with duplicate text"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Shortnames:     []string{},
+			Category:       ptr("GENERAL"),
+		}
+		w := makeRequest("POST", "/obligations", dtoDuplicate, true)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var res models.LicenseError
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+
+		assert.Equal(t, http.StatusConflict, res.Status)
+		assert.Equal(t, "Duplicate text error", res.Message)
+		assert.Contains(t, res.Error, "Obligation with text 'unique text for duplicate text test' already exists")
+	})
+
+	t.Run("DuplicateTopicAndText", func(t *testing.T) {
+		dto := models.ObligationDTO{
+			Topic:          ptr("duplicate-both-topic"),
+			Type:           ptr("RIGHT"),
+			Text:           ptr("duplicate both text"),
+			Modifications:  ptr(false),
+			Classification: ptr("GREEN"),
+			Comment:        ptr("first insert"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Shortnames:     []string{},
+			Category:       ptr("GENERAL"),
+		}
+		assertObligationCreated(t, dto)
+
+		w := makeRequest("POST", "/obligations", dto, true)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var res models.LicenseError
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+
+		assert.Equal(t, http.StatusConflict, res.Status)
+		assert.Equal(t, "Duplicate keys error", res.Message)
+		assert.Contains(t, res.Error, "Obligation with topic 'duplicate-both-topic' and text 'duplicate both text' already exists")
 	})
 
 	t.Run("MissingRequiredField", func(t *testing.T) {

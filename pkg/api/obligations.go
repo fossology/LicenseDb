@@ -10,6 +10,8 @@ package api
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -171,12 +173,64 @@ func CreateObligation(c *gin.Context) {
 		return
 	}
 
-	_ = db.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.
-			Where(&models.Obligation{Topic: obligation.Topic}).
-			Or(&models.Obligation{Md5: obligation.Md5}).
-			FirstOrCreate(&obligation)
+	var textMd5 string
+	if obligation.Text != nil && *obligation.Text != "" {
+		hash := md5.Sum([]byte(*obligation.Text))
+		textMd5 = hex.EncodeToString(hash[:])
+	}
 
+	_ = db.DB.Transaction(func(tx *gorm.DB) error {
+		var existingByTopic models.Obligation
+		hasDuplicateTopic := false
+		if obligation.Topic != nil {
+			err := tx.Where(&models.Obligation{Topic: obligation.Topic}).First(&existingByTopic).Error
+			hasDuplicateTopic = err == nil
+		}
+
+		var existingByText models.Obligation
+		hasDuplicateText := false
+		if textMd5 != "" {
+			err := tx.Where(&models.Obligation{Md5: textMd5}).First(&existingByText).Error
+			hasDuplicateText = err == nil
+		}
+
+		if hasDuplicateTopic && hasDuplicateText {
+			er := models.LicenseError{
+				Status:    http.StatusConflict,
+				Message:   "Duplicate keys error",
+				Error:     fmt.Sprintf("Obligation with topic '%s' and text '%s' already exists", *obligation.Topic, *obligation.Text),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusConflict, er)
+			return errors.New("duplicate topic and text")
+		} else if hasDuplicateTopic {
+			er := models.LicenseError{
+				Status:    http.StatusConflict,
+				Message:   "Duplicate topic error",
+				Error:     fmt.Sprintf("Obligation with topic '%s' already exists", *obligation.Topic),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusConflict, er)
+			return errors.New("duplicate topic")
+		} else if hasDuplicateText {
+			er := models.LicenseError{
+				Status:    http.StatusConflict,
+				Message:   "Duplicate text error",
+				Error:     fmt.Sprintf("Obligation with text '%s' already exists", *obligation.Text),
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusConflict, er)
+			return errors.New("duplicate text")
+		}
+
+		if textMd5 != "" {
+			obligation.Md5 = textMd5
+		}
+
+		result := tx.Create(&obligation)
 		if result.Error != nil {
 			er := models.LicenseError{
 				Status:    http.StatusBadRequest,
@@ -189,24 +243,11 @@ func CreateObligation(c *gin.Context) {
 			return result.Error
 		}
 
-		if result.RowsAffected == 0 {
-			er := models.LicenseError{
-				Status:  http.StatusConflict,
-				Message: "can not create obligation with same topic or text",
-				Error: fmt.Sprintf("Error: Obligation with topic '%s' or Text '%s'... already exists",
-					*obligation.Topic, (*obligation.Text)[0:10]),
-				Path:      c.Request.URL.Path,
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			c.JSON(http.StatusConflict, er)
-			return errors.New("can not create obligation with same topic or text")
-		}
-
 		if err := addChangelogsForObligation(tx, userId, &obligation, &models.Obligation{}); err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusBadRequest,
 				Message:   "Failed to create obligation",
-				Error:     result.Error.Error(),
+				Error:     err.Error(),
 				Path:      c.Request.URL.Path,
 				Timestamp: time.Now().Format(time.RFC3339),
 			}
