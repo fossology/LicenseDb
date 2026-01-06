@@ -103,7 +103,9 @@ func (l *LicenseDB) ConvertToLicenseResponseDTO() LicenseResponseDTO {
 	response.Text = *l.Text
 	response.TextUpdatable = *l.TextUpdatable
 	response.Url = *l.Url
-	response.User = l.User
+	if l.User.Id != uuid.Nil {
+		response.User = &l.User
+	}
 
 	obligations := []string{}
 	for _, o := range l.Obligations {
@@ -177,7 +179,7 @@ type LicenseResponseDTO struct {
 	Risk          int64                    `json:"risk" example:"1"`
 	ExternalRef   LicenseDBSchemaExtension `json:"external_ref"`
 	Obligations   []string                 `json:"obligations"`
-	User          User                     `json:"created_by"`
+	User          *User                    `json:"created_by,omitempty"`
 	AddDate       time.Time                `json:"add_date"`
 }
 
