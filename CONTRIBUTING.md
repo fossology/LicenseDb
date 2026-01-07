@@ -102,6 +102,8 @@ Allowed types:
 *   **test**: Adding missing tests
 *   **chore**: Changes to the build process or auxiliary tools and libraries such as documentation generation
 
+**Note**: Commit messages are automatically validated in CI/CD. All commits must follow this format or the CI check will fail.
+
 ### Developer Certificate of Origin (DCO)
 
 All commits not submitted via GitHub pull request shall contain a

@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2025 fossology community
+# SPDX-License-Identifier: GPL-2.0-only
+
+name: Commit Message Validation
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all tags and branches
+
+    - name: Set up Git configuration
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Validate commit messages
+      run: |
+        # Determine the commit range to check
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          # For pull requests, compare against the base branch
+          BASE_BRANCH="origin/${{ github.base_ref }}"
+          COMMIT_RANGE="$BASE_BRANCH..HEAD"
+        else
+          # For pushes to main, check the last commit
+          COMMIT_RANGE="HEAD~1..HEAD"
+        fi
+        
+        echo "Checking commits in range: $COMMIT_RANGE"
+        
+        # Run the commit validation script
+        chmod +x scripts/validate-commit-history.sh
+        ./scripts/validate-commit-history.sh "$COMMIT_RANGE"
