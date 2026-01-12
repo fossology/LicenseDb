@@ -9,16 +9,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/fossology/LicenseDb/pkg/api"
 	"github.com/fossology/LicenseDb/pkg/db"
+	logger "github.com/fossology/LicenseDb/pkg/log"
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/fossology/LicenseDb/pkg/validations"
+	"go.uber.org/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -39,7 +40,7 @@ func TestMain(m *testing.M) {
 
 	err := godotenv.Load(envFile)
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		logger.LogFatal("Error loading .env file", zap.Error(err))
 	}
 	dbname := os.Getenv("DB_NAME")
 	user := os.Getenv("DB_USER")
@@ -51,11 +52,11 @@ func TestMain(m *testing.M) {
 	runMigrations(user, password, port, dbhost, dbname)   // migrate the test db
 	db.Connect(&dbhost, &port, &user, &dbname, &password) // connnect to the test db
 	if err := seedFirstUser(); err != nil {               // create fisrt user to the test db
-		log.Fatalf(" Failed to seed user: %v", err)
+		logger.LogFatal("Failed to seed user", zap.Error(err))
 	}
-	log.Println("First user created")
+	logger.LogInfo("First user created")
 	if err := validations.RegisterValidations(); err != nil {
-		log.Fatalf("Failed to set up validations: %s", err)
+		logger.LogFatal(fmt.Sprintf("Failed to set up validations: %s", err))
 	}
 	utils.Populatedb(testDataFile) // populate the nessesary tables with data from the file
 	serverPort := os.Getenv("PORT")
@@ -98,16 +99,16 @@ func createTestDB(user, password, port, host, dbname string) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", host, port, user, password)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf(" Failed to connect to postgres: %v", err)
+		logger.LogFatal(fmt.Sprintf("Failed to connect to postgres: %v", err))
 	}
 	defer db.Close()
 
 	_, err = db.Exec("CREATE DATABASE " + dbname)
 	if err != nil && !isAlreadyExistsError(err) {
-		log.Fatalf(" Failed to create test DB: %v", err)
+		logger.LogFatal(fmt.Sprintf("Failed to create test DB: %v", err))
 	}
 
-	log.Println(" Test DB created")
+	logger.LogInfo("Test DB created")
 }
 
 func isAlreadyExistsError(err error) bool {
@@ -122,14 +123,14 @@ func runMigrations(user, password, port, host, dbname string) {
 		dsn,
 	)
 	if err != nil {
-		log.Fatalf(" Failed to create migration instance: %v", err)
+		logger.LogFatal(fmt.Sprintf("Failed to create migration instance: %v", err))
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf(" Migration failed: %v", err)
+		logger.LogFatal(fmt.Sprintf("Migration failed: %v", err))
 	}
 
-	log.Println("Migrations applied")
+	logger.LogInfo("Migrations applied")
 }
 
 func seedFirstUser() error {
@@ -172,7 +173,7 @@ func dropTestDB(user, password, port, host, dbname string) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", host, port, user, password)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Printf(" Error opening connection to drop DB: %v", err)
+		logger.LogInfo(fmt.Sprintf("Error opening connection to drop DB: %v", err))
 		return
 	}
 	defer db.Close()
@@ -182,8 +183,8 @@ func dropTestDB(user, password, port, host, dbname string) {
 
 	_, err = db.Exec("DROP DATABASE IF EXISTS " + dbname)
 	if err != nil {
-		log.Printf(" Error dropping test DB: %v", err)
+		logger.LogInfo(fmt.Sprintf("Error dropping test DB: %v", err))
 	} else {
-		log.Println(" Dropped test DB:", dbname)
+		logger.LogInfo("Dropped test DB:", zap.String("dbname", dbname))
 	}
 }
