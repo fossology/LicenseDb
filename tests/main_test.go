@@ -19,13 +19,13 @@ import (
 	"github.com/fossology/LicenseDb/pkg/models"
 	"github.com/fossology/LicenseDb/pkg/utils"
 	"github.com/fossology/LicenseDb/pkg/validations"
-	"go.uber.org/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 	}
 	logger.LogInfo("First user created")
 	if err := validations.RegisterValidations(); err != nil {
-		logger.LogFatal(fmt.Sprintf("Failed to set up validations: %s", err))
+		logger.LogFatal("Failed to set up validations", zap.Error(err))
 	}
 	utils.Populatedb(testDataFile) // populate the nessesary tables with data from the file
 	serverPort := os.Getenv("PORT")
@@ -96,16 +96,20 @@ func ptr[T any](v T) *T {
 // utility functions
 
 func createTestDB(user, password, port, host, dbname string) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", host, port, user, password)
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		logger.LogFatal(fmt.Sprintf("Failed to connect to postgres: %v", err))
-	}
-	defer db.Close()
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable",
+		host, port, user, password,
+	)
 
-	_, err = db.Exec("CREATE DATABASE " + dbname)
+	conn, err := sql.Open("postgres", dsn)
+	if err != nil {
+		logger.LogFatal("Failed to connect to postgres", zap.Error(err))
+	}
+	defer conn.Close()
+
+	_, err = conn.Exec("CREATE DATABASE " + dbname)
 	if err != nil && !isAlreadyExistsError(err) {
-		logger.LogFatal(fmt.Sprintf("Failed to create test DB: %v", err))
+		logger.LogFatal("Failed to create test DB", zap.Error(err))
 	}
 
 	logger.LogInfo("Test DB created")
@@ -116,18 +120,21 @@ func isAlreadyExistsError(err error) bool {
 }
 
 func runMigrations(user, password, port, host, dbname string) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, dbname)
+	dsn := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		user, password, host, port, dbname,
+	)
 
 	m, err := migrate.New(
 		"file://../pkg/db/migrations",
 		dsn,
 	)
 	if err != nil {
-		logger.LogFatal(fmt.Sprintf("Failed to create migration instance: %v", err))
+		logger.LogFatal("Failed to create migration instance", zap.Error(err))
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		logger.LogFatal(fmt.Sprintf("Migration failed: %v", err))
+		logger.LogFatal("Migration failed", zap.Error(err))
 	}
 
 	logger.LogInfo("Migrations applied")
@@ -170,21 +177,28 @@ func seedFirstUser() error {
 	return nil
 }
 func dropTestDB(user, password, port, host, dbname string) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable", host, port, user, password)
-	db, err := sql.Open("postgres", dsn)
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable",
+		host, port, user, password,
+	)
+
+	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
-		logger.LogInfo(fmt.Sprintf("Error opening connection to drop DB: %v", err))
+		logger.LogError("Error opening connection to drop DB", zap.Error(err))
 		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	_, _ = db.Exec(fmt.Sprintf(`
-		SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s' AND pid <> pg_backend_pid()`, dbname))
+	_, _ = conn.Exec(fmt.Sprintf(`
+		SELECT pg_terminate_backend(pid)
+		FROM pg_stat_activity
+		WHERE datname = '%s' AND pid <> pg_backend_pid()
+	`, dbname))
 
-	_, err = db.Exec("DROP DATABASE IF EXISTS " + dbname)
+	_, err = conn.Exec("DROP DATABASE IF EXISTS " + dbname)
 	if err != nil {
-		logger.LogInfo(fmt.Sprintf("Error dropping test DB: %v", err))
+		logger.LogError("Error dropping test DB", zap.Error(err))
 	} else {
-		logger.LogInfo("Dropped test DB:", zap.String("dbname", dbname))
+		logger.LogInfo("Dropped test DB", zap.String("dbname", dbname))
 	}
 }
