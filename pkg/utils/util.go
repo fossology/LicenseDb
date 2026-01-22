@@ -124,6 +124,13 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 		return message, importStatus
 	}
 
+	// Validate that at least one obligation is attached
+	if lic.Obligations == nil || len(*lic.Obligations) == 0 {
+		message = "cannot import license without obligations: at least one obligation is required"
+		importStatus = IMPORT_FAILED
+		return message, importStatus
+	}
+
 	_ = db.DB.Transaction(func(tx *gorm.DB) error {
 		license := lic.ConvertToLicenseDB()
 		license.UserId = userId

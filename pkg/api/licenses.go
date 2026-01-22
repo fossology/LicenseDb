@@ -252,6 +252,19 @@ func CreateLicense(c *gin.Context) {
 		return
 	}
 
+	// Validate that at least one obligation is attached
+	if input.Obligations == nil || len(*input.Obligations) == 0 {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "cannot create license without obligations",
+			Error:     "at least one obligation must be attached to the license",
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+
 	lic := input.ConvertToLicenseDB()
 
 	lic.UserId = userId
@@ -397,6 +410,19 @@ func UpdateLicense(c *gin.Context) {
 			}
 			c.JSON(http.StatusBadRequest, er)
 			return errors.New("field `text_updatable` needs to be true to update the text")
+		}
+
+		// Validate that obligations are not being set to empty
+		if updates.Obligations != nil && len(*updates.Obligations) == 0 {
+			er := models.LicenseError{
+				Status:    http.StatusBadRequest,
+				Message:   "cannot update license to have zero obligations",
+				Error:     "at least one obligation must remain attached to the license",
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusBadRequest, er)
+			return errors.New("cannot update license to have zero obligations")
 		}
 
 		// Overwrite values of existing keys, add new key value pairs and remove keys with null values.
