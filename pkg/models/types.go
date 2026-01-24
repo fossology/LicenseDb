@@ -174,7 +174,7 @@ type SearchLicense struct {
 // It has user id as a foreign key
 type Audit struct {
 	Id         uuid.UUID   `json:"id" gorm:"primary_key;type:uuid;column:id;default:uuid_generate_v4()" swaggertype:"string" example:"f81d4fae-7dec-11d0-a765-00a0c91e6bf6"`
-	UserId     uuid.UUID   `json:"user_id" gorm:"type:uuid;column:user_id" example:"f81d4fae-7dec-11d0-a765-00a0c91e6bf6" swaggertype:"string"`
+	UserId     uuid.UUID   `json:"-" gorm:"type:uuid;column:user_id"`
 	User       User        `gorm:"foreignKey:UserId;references:Id" json:"user"`
 	Timestamp  time.Time   `json:"timestamp" gorm:"column:timestamp" example:"2023-12-01T18:10:25.00+05:30"`
 	Type       string      `json:"type" gorm:"column:type" enums:"OBLIGATION,LICENSE,USER" example:"LICENSE"`
