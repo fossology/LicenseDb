@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -176,7 +175,9 @@ func CreateOidcUser(c *gin.Context) {
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		c.JSON(http.StatusInternalServerError, er)
-		log.Print("\033[31mError: OIDC environment variables not configured properly\033[0m")
+		logger.LogError(
+			"oidc environment variables not configured properly",
+		)
 		return
 	}
 
@@ -213,7 +214,11 @@ func CreateOidcUser(c *gin.Context) {
 
 	keyset, err := Jwks.Lookup(context.Background(), os.Getenv("JWKS_URI"))
 	if err != nil {
-		log.Print("\033[31mError: Failed jwk.Cache lookup from the oidc provider's URL\033[0m")
+		logger.LogError(
+			"failed jwk cache lookup from oidc provider",
+			zap.Error(err),
+		)
+
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "Something went wrong",
@@ -242,7 +247,10 @@ func CreateOidcUser(c *gin.Context) {
 	}
 
 	if keyError {
-		log.Printf("\033[31mError: Token verification failed due to invalid alg header key field \033[0m")
+		logger.LogError(
+			"token verification failed",
+			zap.String("reason", "invalid alg header key field"),
+		)
 		er := models.LicenseError{
 			Status:    http.StatusUnauthorized,
 			Message:   "Please check your credentials and try again",
@@ -263,12 +271,18 @@ func CreateOidcUser(c *gin.Context) {
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		c.JSON(http.StatusUnauthorized, er)
-		log.Printf("\033[31mError: Token verification failed \033[0m")
+		logger.LogError(
+			"token verification failed",
+			zap.String("stage", "jws_verify"),
+		)
 		return
 	}
-
 	parsedToken, err := jwt.Parse([]byte(tokenString), jwt.WithValidate(true), jwt.WithVerify(false))
 	if err != nil {
+		logger.LogError(
+			"token parsing failed",
+			zap.Error(err),
+		)
 		er := models.LicenseError{
 			Status:    http.StatusUnauthorized,
 			Message:   "Please check your credentials and try again",
@@ -290,7 +304,10 @@ func CreateOidcUser(c *gin.Context) {
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		c.JSON(http.StatusUnauthorized, er)
-		log.Printf("\033[31mError: Issuer '%s' not supported\033[0m", iss)
+		logger.LogError(
+			"issuer not supported",
+			zap.String("issuer", iss),
+		)
 		return
 	}
 
@@ -313,7 +330,10 @@ func CreateOidcUser(c *gin.Context) {
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		c.JSON(http.StatusUnauthorized, er)
-		log.Printf("\033[31mError: %s\033[0m", errMessage)
+		logger.LogError(
+			"error occurred",
+			zap.String("message", errMessage),
+		)
 		return
 	}
 	level := "USER"
