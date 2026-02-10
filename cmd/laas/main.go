@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	datafile   = flag.String("datafile", "licenseRef.json", "datafile path")
-	populatedb = flag.Bool("populatedb", false, "boolean variable to update database")
+	datafile = flag.String("datafile", "licenseRef.json", "(optional) path of the file from which licenses are to be imported")
+	// auto-update the database
+	populatedb = flag.Bool("populatedb", false, "(optional) boolean variable to populate database with licenses, obligation types and classifications on start up")
 )
 
 func main() {

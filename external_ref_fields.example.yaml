@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # SPDX-FileCopyrightText: FOSSology contributors
 
+# add the same yaml file to your frontend project
+
 fields:
   - name: "license_suffix"
     type: "string"
