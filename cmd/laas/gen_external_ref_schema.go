@@ -10,10 +10,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"path/filepath"
+
+	logger "github.com/fossology/LicenseDb/pkg/log"
 
 	"github.com/dave/jennifer/jen"
 	"gopkg.in/yaml.v3"
@@ -46,12 +47,12 @@ func main() {
 
 	fieldsMetadata, err := os.ReadFile(PATH_EXTERNAL_REF_CONFIG_FILE)
 	if err != nil {
-		log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+		logger.LogFatal(fmt.Sprintf("Failed to instantiate json schema for external ref in license: %v", err))
 	}
 
 	err = yaml.Unmarshal(fieldsMetadata, &externalRefYAML)
 	if err != nil {
-		log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+		logger.LogFatal(fmt.Sprintf("Failed to instantiate json schema for external ref in license: %v", err))
 	}
 
 	// REUSE-IgnoreStart
@@ -79,7 +80,7 @@ func main() {
 			err = fmt.Errorf("type %s in external_ref_fields.yaml is not supported", f.Type)
 		}
 		if err != nil {
-			log.Fatalf("Failed to instantiate json schema for external ref in license: %v", err)
+			logger.LogFatal(fmt.Sprintf("Failed to instantiate json schema for external ref in license: %v", err))
 			return
 		}
 		field = field.Tag(map[string]string{"json": fmt.Sprintf("%s,omitempty", f.Name)})

@@ -23,6 +23,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -91,6 +92,43 @@ func makeRequest(method, path string, body interface{}, isAuthenticated bool) *h
 
 func ptr[T any](v T) *T {
 	return &v
+}
+
+// getTestObligation returns a test obligation ID, creating one if it doesn't exist
+func getTestObligation() uuid.UUID {
+	var obligation models.Obligation
+	// Try to find an existing obligation
+	if err := db.DB.First(&obligation).Error; err == nil {
+		return obligation.Id
+	}
+
+	// If no obligation exists, create one for testing
+	var obType models.ObligationType
+	var obClassification models.ObligationClassification
+
+	// Get or create obligation type
+	db.DB.Where(models.ObligationType{Type: "OBLIGATION"}).FirstOrCreate(&obType, models.ObligationType{
+		Type:   "OBLIGATION",
+		Active: ptr(true),
+	})
+
+	// Get or create obligation classification
+	db.DB.Where(models.ObligationClassification{Classification: "GREEN"}).FirstOrCreate(&obClassification, models.ObligationClassification{
+		Classification: "GREEN",
+		Color:          "#00FF00",
+		Active:         ptr(true),
+	})
+
+	// Create test obligation
+	obligation = models.Obligation{
+		Topic:                      ptr("Test Obligation"),
+		Text:                       ptr("This is a test obligation for license testing"),
+		Active:                     ptr(true),
+		ObligationTypeId:           obType.Id,
+		ObligationClassificationId: obClassification.Id,
+	}
+	db.DB.Create(&obligation)
+	return obligation.Id
 }
 
 // utility functions

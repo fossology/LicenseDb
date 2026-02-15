@@ -16,14 +16,15 @@ import (
 
 func TestCreateLicense(t *testing.T) {
 	license := models.LicenseCreateDTO{
-		Shortname: "MIT1",
-		Fullname:  "MIT License",
-		Text:      `MIT1 License copyright (c) <year> <copyright holders> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`,
-		Url:       ptr("https://opensource.org/licenses/MIT"),
-		Notes:     ptr("This license is OSI approved."),
-		Source:    ptr("spdx"),
-		SpdxId:    "LicenseRef-MIT1",
-		Risk:      ptr(int64(2)),
+		Shortname:   "MIT1",
+		Fullname:    "MIT License",
+		Text:        `MIT1 License copyright (c) <year> <copyright holders> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`,
+		Url:         ptr("https://opensource.org/licenses/MIT"),
+		Notes:       ptr("This license is OSI approved."),
+		Source:      ptr("spdx"),
+		SpdxId:      "LicenseRef-MIT1",
+		Risk:        ptr(int64(2)),
+		Obligations: &[]uuid.UUID{getTestObligation()},
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -57,16 +58,38 @@ func TestCreateLicense(t *testing.T) {
 	})
 	t.Run("unauthorized", func(t *testing.T) {
 		license := models.LicenseCreateDTO{
-			Shortname: "UnauthorizedLicense",
-			Fullname:  "Unauthorized License",
-			Text:      "This license should not be created without authentication.",
-			Url:       ptr("https://licenses.org/unauthorized"),
-			SpdxId:    "UNAUTHORIZED",
-			Notes:     ptr("This license is OSI approved."),
-			Risk:      ptr(int64(2)),
+			Shortname:   "UnauthorizedLicense",
+			Fullname:    "Unauthorized License",
+			Text:        "This license should not be created without authentication.",
+			Url:         ptr("https://licenses.org/unauthorized"),
+			SpdxId:      "UNAUTHORIZED",
+			Notes:       ptr("This license is OSI approved."),
+			Risk:        ptr(int64(2)),
+			Obligations: &[]uuid.UUID{getTestObligation()},
 		}
 		w := makeRequest("POST", "/licenses", license, false)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+	t.Run("withoutObligations", func(t *testing.T) {
+		licenseWithoutObligations := models.LicenseCreateDTO{
+			Shortname: "NoObligLicense",
+			Fullname:  "License Without Obligations",
+			Text:      "This license should not be created without obligations.",
+			Url:       ptr("https://licenses.org/nooblig"),
+			SpdxId:    "LicenseRef-NoOblig",
+			Notes:     ptr("Test for obligation validation."),
+			Risk:      ptr(int64(2)),
+			// Obligations intentionally omitted
+		}
+		w := makeRequest("POST", "/licenses", licenseWithoutObligations, true)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var res models.LicenseError
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling response: %v", err)
+			return
+		}
+		assert.Contains(t, res.Message, "without obligations")
 	})
 }
 
@@ -116,14 +139,15 @@ func TestGetLicense(t *testing.T) {
 
 func TestUpdateLicense(t *testing.T) {
 	license := models.LicenseCreateDTO{
-		Shortname: "MIT2",
-		Fullname:  "MIT License 2",
-		Text:      `MIT1 License copyright text`,
-		Url:       ptr("https://opensource.org/licenses/MIT"),
-		Notes:     ptr("This license is OSI approved."),
-		Source:    ptr("spdx"),
-		SpdxId:    "LicenseRef-MIT2",
-		Risk:      ptr(int64(2)),
+		Shortname:   "MIT2",
+		Fullname:    "MIT License 2",
+		Text:        `MIT1 License copyright text`,
+		Url:         ptr("https://opensource.org/licenses/MIT"),
+		Notes:       ptr("This license is OSI approved."),
+		Source:      ptr("spdx"),
+		SpdxId:      "LicenseRef-MIT2",
+		Risk:        ptr(int64(2)),
+		Obligations: &[]uuid.UUID{getTestObligation()},
 	}
 	w := makeRequest("POST", "/licenses", license, true)
 	var res models.LicenseResponse
