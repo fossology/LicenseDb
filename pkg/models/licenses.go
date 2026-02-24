@@ -231,6 +231,9 @@ type LicenseImportDTO struct {
 
 func (dto *LicenseImportDTO) ConvertToLicenseDB() LicenseDB {
 	var l LicenseDB
+	if dto.Id != nil {
+		l.Id = *dto.Id
+	}
 	l.Shortname = dto.Shortname
 	l.Active = dto.Active
 	l.Copyleft = dto.Copyleft

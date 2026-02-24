@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -310,138 +311,26 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 	return message, importStatus
 }
 
-// GenerateDiffForReplacingLicenses creates list of license associations to be created and deleted such that the list of currently associated
-// licenses to a obligation is overwritten by the list provided in the param newLicenseAssociations
-func GenerateDiffForReplacingLicenses(obligation *models.Obligation, newLicenseAssociations []uuid.UUID, removeLicenses, insertLicenses *[]uuid.UUID) {
-	// if license in currently associated with the obligation but isn't in newLicenseAssociations, remove it
-	for _, lic := range obligation.Licenses {
-		found := false
-		for _, id := range newLicenseAssociations {
-			if id == lic.Id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			*removeLicenses = append(*removeLicenses, lic.Id)
-		}
-	}
-
-	// if license in newLicenseAssociations but not currently associated with the obligation, insert it
-	for _, id := range newLicenseAssociations {
-		found := false
-		for _, lic := range obligation.Licenses {
-			if id == lic.Id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			*insertLicenses = append(*insertLicenses, id)
-		}
-	}
-}
-
-// PerformObligationMapActions created associations for licenses in insertLicenses and deletes
-// associations for licenses in removeLicenses. It also calculates changelog for the changes.
-// It returns the final list of associated licenses.
-func PerformObligationMapActions(tx *gorm.DB, userId uuid.UUID, obligation *models.Obligation,
-	removeLicenses, insertLicenses []uuid.UUID) ([]models.ObligationMapLicenseFormat, []error) {
-	createLicenseAssociations := []models.LicenseDB{}
-	deleteLicenseAssociations := []models.LicenseDB{}
-	var oldLicenseAssociations, newLicenseAssociations []models.ObligationMapLicenseFormat
+// PerformObligationMapActions replaces current associated licenses with the list of licenses whose ids are provided in the newLicenseIds.
+func PerformObligationMapActions(tx *gorm.DB, userId uuid.UUID, obligation *models.Obligation, newLicenseIds []uuid.UUID) []error {
+	newLicenseAssociations := []models.LicenseDB{}
 	var errs []error
 
-	for _, lic := range obligation.Licenses {
-		oldLicenseAssociations = append(oldLicenseAssociations, models.ObligationMapLicenseFormat{Id: lic.Id, Shortname: *lic.Shortname})
-	}
-
-	for _, licId := range insertLicenses {
+	for _, licId := range newLicenseIds {
 		var license models.LicenseDB
-		if err := tx.Where(models.LicenseDB{Id: licId}).First(&license).Error; err != nil {
+		activeStatus := true
+		if err := tx.Where(models.LicenseDB{Id: licId, Active: &activeStatus}).First(&license).Error; err != nil {
 			errs = append(errs, fmt.Errorf("unable to associate license '%s' to obligation '%s': %s", licId, obligation.Id, err.Error()))
 		} else {
-			createLicenseAssociations = append(createLicenseAssociations, license)
+			newLicenseAssociations = append(newLicenseAssociations, license)
 		}
 	}
 
-	for _, licId := range removeLicenses {
-		var license models.LicenseDB
-		if err := tx.Where(models.LicenseDB{Id: licId}).First(&license).Error; err != nil {
-			errs = append(errs, fmt.Errorf("unable to remove license '%s' from obligation '%s': %s", licId, obligation.Id, err.Error()))
-		} else {
-			deleteLicenseAssociations = append(deleteLicenseAssociations, license)
-		}
-	}
-
-	if err := tx.Transaction(func(tx1 *gorm.DB) error {
-
-		if len(createLicenseAssociations) != 0 || len(deleteLicenseAssociations) != 0 {
-			if err := tx1.Model(obligation).Association("Licenses").Append(createLicenseAssociations); err != nil {
-				return err
-			}
-			if err := tx1.Model(obligation).Association("Licenses").Delete(deleteLicenseAssociations); err != nil {
-				return err
-			}
-		}
-
-		if err := tx.
-			Preload("Licenses").
-			Joins("Type").
-			Joins("Classification").
-			Where(&models.Obligation{Id: obligation.Id}).
-			First(&obligation).Error; err != nil {
-			return err
-		}
-
-		for _, lic := range obligation.Licenses {
-			newLicenseAssociations = append(newLicenseAssociations, models.ObligationMapLicenseFormat{Id: lic.Id, Shortname: *lic.Shortname})
-		}
-
-		return createObligationMapChangelog(tx, userId, newLicenseAssociations, oldLicenseAssociations, obligation)
-	}); err != nil {
+	if err := tx.Model(obligation).Association("Licenses").Replace(newLicenseAssociations); err != nil {
 		errs = append(errs, err)
 	}
-	return newLicenseAssociations, errs
-}
 
-// createObligationMapChangelog creates the changelog for the obligation map changes.
-func createObligationMapChangelog(
-	tx *gorm.DB,
-	userId uuid.UUID,
-	newLicenseAssociations, oldLicenseAssociations []models.ObligationMapLicenseFormat,
-	obligation *models.Obligation,
-) error {
-	uuidsToStr := func(ids []models.ObligationMapLicenseFormat) string {
-		if len(ids) == 0 {
-			return ""
-		}
-		s := make([]string, 0, len(ids))
-		for _, lic := range ids {
-			s = append(s, lic.Id.String())
-		}
-		return strings.Join(s, ", ")
-	}
-
-	oldVal := uuidsToStr(oldLicenseAssociations)
-	newVal := uuidsToStr(newLicenseAssociations)
-
-	var changes []models.ChangeLog
-	AddChangelog("Licenses", &oldVal, &newVal, &changes)
-
-	audit := models.Audit{
-		UserId:     userId,
-		TypeId:     obligation.Id,
-		Timestamp:  time.Now(),
-		Type:       "OBLIGATION",
-		ChangeLogs: changes,
-	}
-
-	if err := tx.Create(&audit).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return errs
 }
 
 // PerformLicenseMapActions replaces current associated obligations with the list of obligations whose ids are provided in the newObligationIds
@@ -451,7 +340,8 @@ func PerformLicenseMapActions(tx *gorm.DB, userId uuid.UUID, license *models.Lic
 
 	for _, obId := range newObligationIds {
 		var ob models.Obligation
-		if err := tx.Preload("Classification").Preload("Type").First(&ob, obId).Error; err != nil {
+		activeStatus := true
+		if err := tx.Where(models.Obligation{Id: obId, Active: &activeStatus}).Preload("Classification").Preload("Type").First(&ob).Error; err != nil {
 			errs = append(errs, fmt.Errorf("unable to associate obligation '%s': %s", obId, err.Error()))
 		} else {
 			newObligationAssociations = append(newObligationAssociations, ob)
@@ -824,20 +714,20 @@ func AddChangelog[T any](fieldName string, oldValue, newValue *T, changes *[]mod
 	}
 }
 
-func uuidsToStr(ids []models.Obligation) string {
-	if len(ids) == 0 {
-		return ""
-	}
-	s := make([]string, 0, len(ids))
-	for _, lic := range ids {
-		s = append(s, lic.Id.String())
-	}
-	return strings.Join(s, ", ")
-}
-
 // AddChangelogsForLicense adds changelogs for the updated fields on license update
 func AddChangelogsForLicense(tx *gorm.DB, userId uuid.UUID,
 	newLicense, oldLicense *models.LicenseDB) error {
+	uuidsToStr := func(ids []models.Obligation) string {
+		if len(ids) == 0 {
+			return ""
+		}
+		s := make([]string, 0, len(ids))
+		for _, lic := range ids {
+			s = append(s, lic.Id.String())
+		}
+		slices.Sort(s)
+		return strings.Join(s, ", ")
+	}
 	var changes []models.ChangeLog
 
 	AddChangelog("Fullname", oldLicense.Fullname, newLicense.Fullname, &changes)
@@ -855,7 +745,7 @@ func AddChangelogsForLicense(tx *gorm.DB, userId uuid.UUID,
 	oldVal := uuidsToStr(oldLicense.Obligations)
 	newVal := uuidsToStr(newLicense.Obligations)
 
-	AddChangelog("Licenses", &oldVal, &newVal, &changes)
+	AddChangelog("Obligation Ids", &oldVal, &newVal, &changes)
 
 	oldLicenseExternalRef := oldLicense.ExternalRef.Data()
 	oldExternalRefVal := reflect.ValueOf(oldLicenseExternalRef)
