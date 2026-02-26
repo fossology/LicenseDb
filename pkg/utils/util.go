@@ -126,6 +126,13 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 		return message, importStatus
 	}
 
+	// Validate that at least one obligation is provided for import
+	if lic.Obligations == nil || len(*lic.Obligations) == 0 {
+		message = "license must have at least one obligation"
+		importStatus = IMPORT_FAILED
+		return message, importStatus
+	}
+
 	_ = db.DB.Transaction(func(tx *gorm.DB) error {
 		license := lic.ConvertToLicenseDB()
 		license.UserId = userId
@@ -167,6 +174,20 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 			lic.Id = &newLicense.Id
 			lic.Shortname = newLicense.Shortname
 
+			// Reload license with obligations to check final state
+			if err := tx.Preload("Obligations").Where(models.LicenseDB{Id: newLicense.Id}).First(&newLicense).Error; err != nil {
+				message = fmt.Sprintf("failed to update license: %s", err.Error())
+				importStatus = IMPORT_FAILED
+				return errors.New(message)
+			}
+
+			// Validate that license has at least one obligation after update
+			if len(newLicense.Obligations) == 0 {
+				message = "license must have at least one obligation"
+				importStatus = IMPORT_FAILED
+				return errors.New(message)
+			}
+
 			if err := AddChangelogsForLicense(tx, userId, &newLicense, &oldLicense); err != nil {
 				message = fmt.Sprintf("failed to update license: %s", err.Error())
 				importStatus = IMPORT_FAILED
@@ -178,6 +199,20 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 			// case when license doesn't exist in database and is inserted
 			if err := tx.Create(&license).Error; err != nil {
 				message = fmt.Sprintf("failed to import license: %s", err.Error())
+				importStatus = IMPORT_FAILED
+				return errors.New(message)
+			}
+
+			// Reload license with obligations to check final state
+			if err := tx.Preload("Obligations").Where(models.LicenseDB{Id: license.Id}).First(&license).Error; err != nil {
+				message = fmt.Sprintf("failed to import license: %s", err.Error())
+				importStatus = IMPORT_FAILED
+				return errors.New(message)
+			}
+
+			// Validate that license has at least one obligation after creation
+			if len(license.Obligations) == 0 {
+				message = "license must have at least one obligation"
 				importStatus = IMPORT_FAILED
 				return errors.New(message)
 			}

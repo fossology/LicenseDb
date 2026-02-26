@@ -252,6 +252,19 @@ func CreateLicense(c *gin.Context) {
 		return
 	}
 
+	// Validate that at least one obligation is provided
+	if input.Obligations == nil || len(*input.Obligations) == 0 {
+		er := models.LicenseError{
+			Status:    http.StatusBadRequest,
+			Message:   "can not create license with these field values",
+			Error:     "license must have at least one obligation",
+			Path:      c.Request.URL.Path,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		c.JSON(http.StatusBadRequest, er)
+		return
+	}
+
 	lic := input.ConvertToLicenseDB()
 
 	lic.UserId = userId
@@ -271,7 +284,7 @@ func CreateLicense(c *gin.Context) {
 			return result.Error
 		}
 
-		if err := tx.Preload("User").First(&lic).Error; err != nil {
+		if err := tx.Preload("User").Preload("Obligations").First(&lic).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusInternalServerError,
 				Message:   "Failed to create license",
@@ -281,6 +294,19 @@ func CreateLicense(c *gin.Context) {
 			}
 			c.JSON(http.StatusInternalServerError, er)
 			return result.Error
+		}
+
+		// Validate that license has at least one obligation after creation
+		if len(lic.Obligations) == 0 {
+			er := models.LicenseError{
+				Status:    http.StatusBadRequest,
+				Message:   "can not create license with these field values",
+				Error:     "license must have at least one obligation",
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusBadRequest, er)
+			return errors.New("license must have at least one obligation")
 		}
 
 		if err := utils.AddChangelogsForLicense(tx, userId, &lic, &models.LicenseDB{}); err != nil {
@@ -434,6 +460,19 @@ func UpdateLicense(c *gin.Context) {
 			}
 			c.JSON(http.StatusInternalServerError, er)
 			return err
+		}
+
+		// Validate that license has at least one obligation after update
+		if len(newLicense.Obligations) == 0 {
+			er := models.LicenseError{
+				Status:    http.StatusBadRequest,
+				Message:   "can not update license with these field values",
+				Error:     "license must have at least one obligation",
+				Path:      c.Request.URL.Path,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			c.JSON(http.StatusBadRequest, er)
+			return errors.New("license must have at least one obligation")
 		}
 
 		if err := utils.AddChangelogsForLicense(tx, userId, &newLicense, &oldLicense); err != nil {

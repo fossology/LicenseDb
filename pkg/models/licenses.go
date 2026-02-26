@@ -262,6 +262,11 @@ func (dto *LicenseImportDTO) ConvertToLicenseDB() LicenseDB {
 
 	l.ExternalRef = datatypes.NewJSONType(ext)
 
+	// Set obligations if provided
+	if dto.Obligations != nil {
+		l.Obligations = *dto.Obligations
+	}
+
 	return l
 }
 
