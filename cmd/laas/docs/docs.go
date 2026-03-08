@@ -832,7 +832,7 @@ const docTemplate = `{
                     "200": {
                         "description": "JWT token",
                         "schema": {
-                            "$ref": "#/definitions/models.TokenResonse"
+                            "$ref": "#/definitions/models.TokenResponse"
                         }
                     },
                     "401": {
@@ -1837,9 +1837,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": " JWT token",
+                        "description": "JWT token",
                         "schema": {
-                            "$ref": "#/definitions/models.TokenResonse"
+                            "$ref": "#/definitions/models.TokenResponse"
                         }
                     },
                     "401": {
@@ -3306,7 +3306,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.TokenResonse": {
+        "models.TokenResponse": {
             "type": "object",
             "properties": {
                 "data": {
