@@ -722,7 +722,7 @@ definitions:
     required:
     - text
     type: object
-  models.TokenResonse:
+  models.TokenResponse:
     properties:
       data:
         $ref: '#/definitions/models.Tokens'
@@ -1369,7 +1369,7 @@ paths:
         "200":
           description: JWT token
           schema:
-            $ref: '#/definitions/models.TokenResonse'
+            $ref: '#/definitions/models.TokenResponse'
         "401":
           description: Incorrect username or password
           schema:
@@ -2017,9 +2017,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: ' JWT token'
+          description: JWT token
           schema:
-            $ref: '#/definitions/models.TokenResonse'
+            $ref: '#/definitions/models.TokenResponse'
         "401":
           description: Invalid or expired refresh token
           schema:
