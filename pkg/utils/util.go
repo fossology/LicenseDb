@@ -349,7 +349,7 @@ func PerformLicenseMapActions(tx *gorm.DB, userId uuid.UUID, license *models.Lic
 		}
 	}
 
-	if err := tx.Debug().Model(license).Association("Obligations").Replace(newObligationAssociations); err != nil {
+	if err := tx.Model(license).Association("Obligations").Replace(newObligationAssociations); err != nil {
 		errs = append(errs, err)
 	}
 
