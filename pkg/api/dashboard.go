@@ -98,7 +98,7 @@ func GetDashboardData(c *gin.Context) {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "something went wrong",
-			Error:     "error fetching risk liicense frequencies",
+			Error:     "error fetching risk license frequencies",
 			Path:      c.Request.URL.Path,
 			Timestamp: time.Now().Format(time.RFC3339),
 		}

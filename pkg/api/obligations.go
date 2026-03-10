@@ -372,7 +372,7 @@ func UpdateObligation(c *gin.Context) {
 	}); err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
-			Message:   "Failed to update license",
+			Message:   "Failed to update obligation",
 			Error:     err.Error(),
 			Path:      c.Request.URL.Path,
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -636,7 +636,7 @@ func ImportObligations(c *gin.Context) {
 				if err := addChangelogsForObligation(tx, userId, &oldObligation, &models.Obligation{}); err != nil {
 					res.Data = append(res.Data, models.LicenseError{
 						Status:    http.StatusInternalServerError,
-						Message:   "Failed to update license",
+						Message:   "Failed to update obligation",
 						Error:     err.Error(),
 						Path:      c.Request.URL.Path,
 						Timestamp: time.Now().Format(time.RFC3339),
@@ -684,7 +684,7 @@ func ImportObligations(c *gin.Context) {
 						if err := tx.Joins("Classification").Joins("Type").Preload("Licenses").First(&oldObligation, oldObligation.Id).Error; err != nil {
 							res.Data = append(res.Data, models.LicenseError{
 								Status:    http.StatusInternalServerError,
-								Message:   "Failed to update license",
+								Message:   "Failed to update obligation",
 								Error:     err.Error(),
 								Path:      c.Request.URL.Path,
 								Timestamp: time.Now().Format(time.RFC3339),
@@ -695,7 +695,7 @@ func ImportObligations(c *gin.Context) {
 						if err := addChangelogsForObligation(tx, userId, &oldObligation, &models.Obligation{}); err != nil {
 							res.Data = append(res.Data, models.LicenseError{
 								Status:    http.StatusInternalServerError,
-								Message:   "Failed to update license",
+								Message:   "Failed to update obligation",
 								Error:     err.Error(),
 								Path:      c.Request.URL.Path,
 								Timestamp: time.Now().Format(time.RFC3339),
@@ -734,7 +734,7 @@ func ImportObligations(c *gin.Context) {
 					if err := tx.Model(&models.Obligation{}).Where(models.Obligation{Id: oldObligation.Id}).UpdateColumn("external_ref", gorm.Expr("jsonb_strip_nulls(COALESCE(external_ref, '{}'::jsonb) || ?)", ob.ExternalRef)).Error; err != nil {
 						res.Data = append(res.Data, models.LicenseError{
 							Status:    http.StatusInternalServerError,
-							Message:   "Failed to update license",
+							Message:   "Failed to update obligation",
 							Error:     err.Error(),
 							Path:      c.Request.URL.Path,
 							Timestamp: time.Now().Format(time.RFC3339),
@@ -745,7 +745,7 @@ func ImportObligations(c *gin.Context) {
 					if err := tx.Omit("ExternalRef", "Licenses", "Topic").Updates(&newObligation).Error; err != nil {
 						res.Data = append(res.Data, models.LicenseError{
 							Status:    http.StatusInternalServerError,
-							Message:   "Failed to update license",
+							Message:   "Failed to update obligation",
 							Error:     err.Error(),
 							Path:      c.Request.URL.Path,
 							Timestamp: time.Now().Format(time.RFC3339),
@@ -771,7 +771,7 @@ func ImportObligations(c *gin.Context) {
 					if err := tx.Joins("Type").Joins("Classification").Preload("Licenses").First(&newObligation).Error; err != nil {
 						res.Data = append(res.Data, models.LicenseError{
 							Status:    http.StatusInternalServerError,
-							Message:   "Failed to update license",
+							Message:   "Failed to update obligation",
 							Error:     err.Error(),
 							Path:      c.Request.URL.Path,
 							Timestamp: time.Now().Format(time.RFC3339),
@@ -782,7 +782,7 @@ func ImportObligations(c *gin.Context) {
 					if err := addChangelogsForObligation(tx, userId, &newObligation, &oldObligation); err != nil {
 						res.Data = append(res.Data, models.LicenseError{
 							Status:    http.StatusInternalServerError,
-							Message:   "Failed to update license",
+							Message:   "Failed to update obligation",
 							Error:     err.Error(),
 							Path:      c.Request.URL.Path,
 							Timestamp: time.Now().Format(time.RFC3339),
