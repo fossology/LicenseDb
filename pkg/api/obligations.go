@@ -78,7 +78,7 @@ func GetAllObligation(c *gin.Context) {
 
 	query.Order(queryOrderString)
 
-	if err = query.Joins("Type").Joins("Classification").Preload("Licenses").Find(&obligations).Error; err != nil {
+	if err = query.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").Find(&obligations).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "Unable to fetch obligations",
@@ -138,7 +138,7 @@ func GetObligation(c *gin.Context) {
 		return
 	}
 
-	if err := query.Joins("Type").Joins("Classification").Preload("Licenses").Where(models.Obligation{Id: obligationId}).First(&obligation).Error; err != nil {
+	if err := query.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").Where(models.Obligation{Id: obligationId}).First(&obligation).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   fmt.Sprintf("obligation with id '%s' not found", obligationId.String()),
@@ -226,7 +226,7 @@ func CreateObligation(c *gin.Context) {
 			return errors.New(combinedMapErrors.String())
 		}
 
-		if err := tx.Joins("Classification").Joins("Type").Preload("Licenses").First(&ob, ob.Id).Error; err != nil {
+		if err := tx.Joins("Classification").Joins("Category").Joins("Type").Preload("Licenses").First(&ob, ob.Id).Error; err != nil {
 			er := models.LicenseError{
 				Status:    http.StatusInternalServerError,
 				Message:   "Failed to create obligation",
@@ -310,7 +310,7 @@ func UpdateObligation(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Joins("Classification").Joins("Type").Preload("Licenses").Where(models.Obligation{Id: obligationId}).First(&oldObligation).Error; err != nil {
+	if err := db.DB.Joins("Classification").Joins("Category").Joins("Type").Preload("Licenses").Where(models.Obligation{Id: obligationId}).First(&oldObligation).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   fmt.Sprintf("obligation with id '%s' not found", obligationId.String()),
@@ -360,7 +360,7 @@ func UpdateObligation(c *gin.Context) {
 			}
 		}
 
-		if err := tx.Joins("Type").Joins("Classification").Preload("Licenses").First(&newObligation).Error; err != nil {
+		if err := tx.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").First(&newObligation).Error; err != nil {
 			return err
 		}
 
@@ -621,7 +621,7 @@ func ImportObligations(c *gin.Context) {
 					}
 				}
 
-				if err := tx.Joins("Classification").Joins("Type").Preload("Licenses").First(&oldObligation, oldObligation.Id).Error; err != nil {
+				if err := tx.Joins("Classification").Joins("Category").Joins("Type").Preload("Licenses").First(&oldObligation, oldObligation.Id).Error; err != nil {
 					er := models.LicenseError{
 						Status:    http.StatusInternalServerError,
 						Message:   "Failed to create obligation",
@@ -681,7 +681,7 @@ func ImportObligations(c *gin.Context) {
 							}
 						}
 
-						if err := tx.Joins("Classification").Joins("Type").Preload("Licenses").First(&oldObligation, oldObligation.Id).Error; err != nil {
+						if err := tx.Joins("Classification").Joins("Category").Joins("Type").Preload("Licenses").First(&oldObligation, oldObligation.Id).Error; err != nil {
 							res.Data = append(res.Data, models.LicenseError{
 								Status:    http.StatusInternalServerError,
 								Message:   "Failed to update license",
@@ -768,7 +768,7 @@ func ImportObligations(c *gin.Context) {
 						}
 					}
 
-					if err := tx.Joins("Type").Joins("Classification").Preload("Licenses").First(&newObligation).Error; err != nil {
+					if err := tx.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").First(&newObligation).Error; err != nil {
 						res.Data = append(res.Data, models.LicenseError{
 							Status:    http.StatusInternalServerError,
 							Message:   "Failed to update license",
@@ -822,7 +822,7 @@ func ImportObligations(c *gin.Context) {
 func ExportObligations(c *gin.Context) {
 	var obligations []models.Obligation
 
-	if err := db.DB.Joins("Type").Joins("Classification").Preload("Licenses").Find(&obligations).Error; err != nil {
+	if err := db.DB.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").Find(&obligations).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "Failed to fetch obligations",
