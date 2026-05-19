@@ -1049,6 +1049,25 @@ paths:
       summary: Fetches data to be displayed on the dashboard
       tags:
       - Dashboard
+  /hard-reset:
+    delete:
+      description: Delete all data from configured tables used by license/obligation/audit
+        domain
+      operationId: HardResetDatabase
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: failed to hard reset database
+          schema:
+            $ref: '#/definitions/models.LicenseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Hard reset database
+      tags:
+      - Admin
   /health:
     get:
       consumes:

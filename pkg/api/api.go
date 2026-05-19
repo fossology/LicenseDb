@@ -176,6 +176,10 @@ func Router() *gin.Engine {
 				oidcClient.POST("", AddOidcClient)
 				oidcClient.DELETE("", RevokeClient)
 			}
+			hardReset := authorizedv1.Group("/hard-reset")
+			{
+				hardReset.DELETE("", middleware.RoleBasedAccessMiddleware([]string{"ADMIN"}), HardResetDatabase)
+			}
 		}
 	} else {
 		unAuthorizedv1 := r.Group("/api/v1")
@@ -275,6 +279,10 @@ func Router() *gin.Engine {
 				oidcClient.GET("", GetUserOidcClients)
 				oidcClient.POST("", AddOidcClient)
 				oidcClient.DELETE("", RevokeClient)
+			}
+			hardReset := authorizedv1.Group("/hard-reset")
+			{
+				hardReset.DELETE("", middleware.RoleBasedAccessMiddleware([]string{"ADMIN"}), HardResetDatabase)
 			}
 		}
 	}
