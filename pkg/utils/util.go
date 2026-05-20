@@ -326,7 +326,10 @@ func PerformObligationMapActions(tx *gorm.DB, userId uuid.UUID, obligation *mode
 		}
 	}
 
-	if err := tx.Model(obligation).Association("Licenses").Replace(newLicenseAssociations); err != nil {
+	// Use a local model copy so association replacement does not mutate caller state
+	// that may be used for changelog old/new comparisons.
+	obligationModel := models.Obligation{Id: obligation.Id}
+	if err := tx.Model(&obligationModel).Association("Licenses").Replace(newLicenseAssociations); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -347,7 +350,10 @@ func PerformLicenseMapActions(tx *gorm.DB, userId uuid.UUID, license *models.Lic
 		}
 	}
 
-	if err := tx.Model(license).Association("Obligations").Replace(newObligationAssociations); err != nil {
+	// Use a local model copy so association replacement does not mutate the caller's
+	// pre-update license instance used later for changelog old/new comparisons.
+	licenseModel := models.LicenseDB{Id: license.Id}
+	if err := tx.Model(&licenseModel).Association("Obligations").Replace(newObligationAssociations); err != nil {
 		errs = append(errs, err)
 	}
 
