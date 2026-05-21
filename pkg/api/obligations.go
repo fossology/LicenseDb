@@ -253,7 +253,7 @@ func CreateObligation(c *gin.Context) {
 		obdto := ob.ConvertToObligationResponseDTO()
 		res := models.ObligationResponse{
 			Data:   []models.ObligationResponseDTO{obdto},
-			Status: http.StatusOK,
+			Status: http.StatusCreated,
 			Meta: models.PaginationMeta{
 				ResourceCount: 1,
 			},
@@ -441,7 +441,7 @@ func DeleteObligation(c *gin.Context) {
 			Path:      c.Request.URL.Path,
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
-		c.JSON(http.StatusNotFound, er)
+		c.JSON(http.StatusInternalServerError, er)
 		return
 	}
 	c.Status(http.StatusNoContent)

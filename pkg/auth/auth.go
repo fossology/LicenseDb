@@ -612,7 +612,7 @@ func UpdateProfile(c *gin.Context) {
 
 		res := models.UserResponse{
 			Data:   []models.User{updatedUser},
-			Status: http.StatusCreated,
+			Status: http.StatusOK,
 			Meta: &models.PaginationMeta{
 				ResourceCount: 1,
 			},
