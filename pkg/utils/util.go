@@ -319,15 +319,17 @@ func PerformObligationMapActions(tx *gorm.DB, userId uuid.UUID, obligation *mode
 
 	for _, licId := range newLicenseIds {
 		var license models.LicenseDB
-		activeStatus := true
-		if err := tx.Where(models.LicenseDB{Id: licId, Active: &activeStatus}).First(&license).Error; err != nil {
+		if err := tx.Where(models.LicenseDB{Id: licId}).First(&license).Error; err != nil {
 			errs = append(errs, fmt.Errorf("unable to associate license '%s' to obligation '%s': %s", licId, obligation.Id, err.Error()))
 		} else {
 			newLicenseAssociations = append(newLicenseAssociations, license)
 		}
 	}
 
-	if err := tx.Model(obligation).Association("Licenses").Replace(newLicenseAssociations); err != nil {
+	// Use a local model copy so association replacement does not mutate caller state
+	// that may be used for changelog old/new comparisons.
+	obligationModel := models.Obligation{Id: obligation.Id}
+	if err := tx.Model(&obligationModel).Association("Licenses").Replace(newLicenseAssociations); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -341,15 +343,17 @@ func PerformLicenseMapActions(tx *gorm.DB, userId uuid.UUID, license *models.Lic
 
 	for _, obId := range newObligationIds {
 		var ob models.Obligation
-		activeStatus := true
-		if err := tx.Where(models.Obligation{Id: obId, Active: &activeStatus}).Preload("Classification").Preload("Category").Preload("Type").First(&ob).Error; err != nil {
+		if err := tx.Where(models.Obligation{Id: obId}).Preload("Classification").Preload("Category").Preload("Type").First(&ob).Error; err != nil {
 			errs = append(errs, fmt.Errorf("unable to associate obligation '%s': %s", obId, err.Error()))
 		} else {
 			newObligationAssociations = append(newObligationAssociations, ob)
 		}
 	}
 
-	if err := tx.Model(license).Association("Obligations").Replace(newObligationAssociations); err != nil {
+	// Use a local model copy so association replacement does not mutate the caller's
+	// pre-update license instance used later for changelog old/new comparisons.
+	licenseModel := models.LicenseDB{Id: license.Id}
+	if err := tx.Model(&licenseModel).Association("Obligations").Replace(newObligationAssociations); err != nil {
 		errs = append(errs, err)
 	}
 
