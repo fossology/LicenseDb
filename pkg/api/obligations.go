@@ -1034,14 +1034,22 @@ func getSimilarObligations(c *gin.Context) {
 		return
 	}
 	var results []models.SimilarObligation
-	utils.SetSimilarityThreshold()
+	threshold := utils.GetSimilarityThreshold()
 	rawQuery := `
-		SELECT id, topic,text, similarity(text, ?) AS similarity
+		SELECT id, topic, text, similarity(text, ?) AS similarity
 		FROM obligations
 		WHERE text % ?
 		ORDER BY similarity DESC
 	`
-	if err := db.DB.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error; err != nil {
+	// SET LOCAL scopes the threshold to this transaction only, preventing race conditions
+	// when multiple requests adjust the threshold concurrently (unlike the previous SET which
+	// was session-scoped and leaked across concurrent connections in the pool).
+	if err := db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(fmt.Sprintf("SET LOCAL pg_trgm.similarity_threshold = %.4f", threshold)).Error; err != nil {
+			return err
+		}
+		return tx.Raw(rawQuery, req.Text, req.Text).Scan(&results).Error
+	}); err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
 			Message:   "Database query failed",

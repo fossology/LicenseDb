@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -67,7 +68,7 @@ func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Type.Id.String() == "" {
+		if o.Type.Id == uuid.Nil || o.Type.Id.String() == "" {
 			return fmt.Errorf("obligation type must be one of the following values:%s", allTypes)
 		}
 	} else {
@@ -88,7 +89,7 @@ func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Classification.Id.String() == "" {
+		if o.Classification.Id == uuid.Nil || o.Classification.Id.String() == "" {
 			return fmt.Errorf("obligation classification must be one of the following values:%s", allClassifications)
 		}
 	} else {
@@ -109,7 +110,7 @@ func (o *Obligation) BeforeCreate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Classification.Id.String() == "" {
+		if o.Category.Id == uuid.Nil || o.Category.Id.String() == "" {
 			return fmt.Errorf("obligation category must be one of the following values:%s", allCategories)
 		}
 	} else {
@@ -138,7 +139,7 @@ func (o *Obligation) BeforeUpdate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Type.Id.String() == "" {
+		if o.Type.Id == uuid.Nil || o.Type.Id.String() == "" {
 			return fmt.Errorf("obligation type must be one of the following values:%s", allTypes)
 		}
 	}
@@ -159,7 +160,7 @@ func (o *Obligation) BeforeUpdate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Classification.Id.String() == "" {
+		if o.Classification.Id == uuid.Nil || o.Classification.Id.String() == "" {
 			return fmt.Errorf("obligation classification must be one of the following values:%s", allClassifications)
 		}
 	}
@@ -177,7 +178,7 @@ func (o *Obligation) BeforeUpdate(tx *gorm.DB) (err error) {
 				}
 			}
 		}
-		if o.Classification.Id.String() == "" {
+		if o.Category.Id == uuid.Nil || o.Category.Id.String() == "" {
 			return fmt.Errorf("obligation category must be one of the following values:%s", allCategories)
 		}
 	}
@@ -336,7 +337,7 @@ func (obDto *ObligationFileDTO) ConvertToObligation() Obligation {
 	bytes, _ := json.Marshal(obDto.ExternalRef)
 
 	if err := json.Unmarshal(bytes, &ext); err != nil {
-		panic(err)
+		log.Printf("failed to unmarshal external_ref for obligation %v: %v", obDto.Topic, err)
 	}
 
 	o.ExternalRef = datatypes.NewJSONType(ext)

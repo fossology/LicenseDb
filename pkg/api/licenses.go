@@ -314,7 +314,9 @@ func CreateLicense(c *gin.Context) {
 		}
 		// Send notification email about license creation
 		if email.Email != nil {
-			email.NotifyLicenseCreated(*lic.User.UserEmail, *lic.User.UserName, *lic.Shortname)
+			if lic.User.UserEmail != nil && lic.User.UserName != nil {
+				email.NotifyLicenseCreated(*lic.User.UserEmail, *lic.User.UserName, *lic.Shortname)
+			}
 		} else {
 			logger.LogInfo("Email service is not enabled; skipping notification email sending")
 		}
@@ -488,7 +490,9 @@ func UpdateLicense(c *gin.Context) {
 		}
 		// Send notification email about license update
 		if email.Email != nil {
-			email.NotifyLicenseUpdated(*newLicense.User.UserEmail, *newLicense.User.UserName, *newLicense.Shortname)
+			if newLicense.User.UserEmail != nil && newLicense.User.UserName != nil {
+				email.NotifyLicenseUpdated(*newLicense.User.UserEmail, *newLicense.User.UserName, *newLicense.Shortname)
+			}
 		} else {
 			logger.LogInfo("Email service is not enabled; skipping notification email sending")
 		}
@@ -852,14 +856,22 @@ func getSimilarLicenses(c *gin.Context) {
 		return
 	}
 	var results []models.SimilarLicense
-	utils.SetSimilarityThreshold()
+	threshold := utils.GetSimilarityThreshold()
 	query := `
 		SELECT rf_id, rf_shortname, rf_text, similarity(rf_text, ?) AS similarity
 		FROM license_dbs
 		WHERE rf_text % ?
 		ORDER BY similarity DESC
 	`
-	if err := db.DB.Raw(query, req.Text, req.Text).Scan(&results).Error; err != nil {
+	// SET LOCAL scopes the threshold to this transaction only, preventing race conditions
+	// when multiple requests adjust the threshold concurrently (unlike the previous SET which
+	// was session-scoped and leaked across concurrent connections in the pool).
+	if err := db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(fmt.Sprintf("SET LOCAL pg_trgm.similarity_threshold = %.4f", threshold)).Error; err != nil {
+			return err
+		}
+		return tx.Raw(query, req.Text, req.Text).Scan(&results).Error
+	}); err != nil {
 		c.JSON(http.StatusBadRequest, models.LicenseError{
 			Status:    http.StatusBadRequest,
 			Message:   "Database query failed",
