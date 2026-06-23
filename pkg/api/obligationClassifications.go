@@ -108,9 +108,10 @@ func CreateObligationClassification(c *gin.Context) {
 		return
 	}
 
-	err, status := utils.CreateObClassification(&obClassification, userId)
+	status, err := utils.CreateObClassification(&obClassification, userId)
 
-	if status == utils.CREATED {
+	switch status {
+	case utils.CREATED:
 		res := models.ObligationClassificationResponse{
 			Status: http.StatusCreated,
 			Data:   []models.ObligationClassification{obClassification},
@@ -120,7 +121,7 @@ func CreateObligationClassification(c *gin.Context) {
 		}
 		c.JSON(http.StatusCreated, res)
 
-	} else if status == utils.CONFLICT {
+	case utils.CONFLICT:
 		er := models.LicenseError{
 			Status:    http.StatusConflict,
 			Message:   "obligation classification already exists",
@@ -130,7 +131,7 @@ func CreateObligationClassification(c *gin.Context) {
 		}
 		c.JSON(http.StatusConflict, er)
 
-	} else if status == utils.CONFLICT_ACTIVATION_FAILED {
+	case utils.CONFLICT_ACTIVATION_FAILED:
 		er := models.LicenseError{
 			Status:    http.StatusConflict,
 			Message:   "obligation classification already exists, something went wrong while reactvating it",
@@ -140,7 +141,7 @@ func CreateObligationClassification(c *gin.Context) {
 		}
 		c.JSON(http.StatusConflict, er)
 
-	} else if status == utils.VALIDATION_FAILED {
+	case utils.VALIDATION_FAILED:
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
 			Message:   "can not create obligation classification with these field values",
@@ -150,7 +151,7 @@ func CreateObligationClassification(c *gin.Context) {
 		}
 		c.JSON(http.StatusBadRequest, er)
 
-	} else {
+	default:
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "something went wrong while creating new obligation classification",

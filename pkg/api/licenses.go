@@ -553,12 +553,13 @@ func SearchInLicense(c *gin.Context) {
 		return
 	}
 
-	if input.Search == "fuzzy" {
+	switch input.Search {
+	case "fuzzy":
 		query = query.Where(fmt.Sprintf("%s ILIKE ?", input.Field),
 			fmt.Sprintf("%%%s%%", input.SearchTerm))
-	} else if input.Search == "" || input.Search == "full_text_search" {
+	case "", "full_text_search":
 		query = query.Where(input.Field+" @@ plainto_tsquery(?)", input.SearchTerm)
-	} else {
+	default:
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   "search algorithm doesn't exist",
@@ -626,7 +627,9 @@ func ImportLicenses(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	if filepath.Ext(header.Filename) != ".json" {
 		er := models.LicenseError{

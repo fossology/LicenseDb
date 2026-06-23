@@ -548,7 +548,9 @@ func ImportObligations(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	if filepath.Ext(header.Filename) != ".json" {
 		er := models.LicenseError{
