@@ -109,7 +109,7 @@ func CreateObligationCategory(c *gin.Context) {
 		return
 	}
 
-	err, status := utils.CreateObCategory(&obCategory, userId)
+	status, err := utils.CreateObCategory(&obCategory, userId)
 
 	switch status {
 	case utils.CREATED:

@@ -108,9 +108,10 @@ func CreateObligationType(c *gin.Context) {
 		return
 	}
 
-	err, status := utils.CreateObType(&obType, userId)
+	status, err := utils.CreateObType(&obType, userId)
 
-	if status == utils.CREATED {
+	switch status {
+	case utils.CREATED:
 		res := models.ObligationTypeResponse{
 			Status: http.StatusCreated,
 			Data:   []models.ObligationType{obType},
@@ -120,7 +121,7 @@ func CreateObligationType(c *gin.Context) {
 		}
 		c.JSON(http.StatusCreated, res)
 
-	} else if status == utils.CONFLICT {
+	case utils.CONFLICT:
 		er := models.LicenseError{
 			Status:    http.StatusConflict,
 			Message:   "obligation type already exists",
@@ -130,7 +131,7 @@ func CreateObligationType(c *gin.Context) {
 		}
 		c.JSON(http.StatusConflict, er)
 
-	} else if status == utils.CONFLICT_ACTIVATION_FAILED {
+	case utils.CONFLICT_ACTIVATION_FAILED:
 		er := models.LicenseError{
 			Status:    http.StatusConflict,
 			Message:   "obligation type already exists, something went wrong while reactvating it",
@@ -140,7 +141,7 @@ func CreateObligationType(c *gin.Context) {
 		}
 		c.JSON(http.StatusConflict, er)
 
-	} else if status == utils.VALIDATION_FAILED {
+	case utils.VALIDATION_FAILED:
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
 			Message:   "can not create obligation type with these field values",
@@ -150,7 +151,7 @@ func CreateObligationType(c *gin.Context) {
 		}
 		c.JSON(http.StatusBadRequest, er)
 
-	} else {
+	default:
 		er := models.LicenseError{
 			Status:    http.StatusInternalServerError,
 			Message:   "something went wrong while creating new obligation type",

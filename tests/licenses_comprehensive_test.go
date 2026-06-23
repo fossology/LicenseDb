@@ -186,7 +186,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write(jsonData)
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)
@@ -213,7 +213,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write([]byte("not json"))
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)
@@ -277,7 +277,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write(jsonData)
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)
@@ -345,7 +345,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write(jsonData)
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)
@@ -434,7 +434,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write(jsonData)
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)
@@ -478,7 +478,7 @@ func TestImportLicenses(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = part.Write(jsonData)
 		assert.NoError(t, err)
-		writer.Close()
+		assert.NoError(t, writer.Close())
 
 		fullPath := baseURL + "/licenses/import"
 		req := httptest.NewRequest("POST", fullPath, body)

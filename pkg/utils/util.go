@@ -195,9 +195,9 @@ func InsertOrUpdateLicenseOnImport(lic *models.LicenseImportDTO, userId uuid.UUI
 
 				if *oldLicense.Text != *newLicense.Text {
 					if !*oldLicense.TextUpdatable {
-						message = "Field `text_updatable` needs to be true to update the text"
+						message = "field `text_updatable` needs to be true to update the text"
 						importStatus = IMPORT_FAILED
-						return errors.New("Field `text_updatable` needs to be true to update the text")
+						return errors.New("field `text_updatable` needs to be true to update the text")
 					}
 				}
 
@@ -471,9 +471,9 @@ const (
 	CREATED
 )
 
-func CreateObType(obType *models.ObligationType, userId uuid.UUID) (error, ObligationFieldCreateStatusCode) {
+func CreateObType(obType *models.ObligationType, userId uuid.UUID) (ObligationFieldCreateStatusCode, error) {
 	if err := validations.Validate.Struct(obType); err != nil {
-		return err, VALIDATION_FAILED
+		return VALIDATION_FAILED, err
 	}
 
 	var status ObligationFieldCreateStatusCode
@@ -503,12 +503,12 @@ func CreateObType(obType *models.ObligationType, userId uuid.UUID) (error, Oblig
 		return nil
 	})
 
-	return err, status
+	return status, err
 }
 
-func CreateObClassification(obClassification *models.ObligationClassification, userId uuid.UUID) (error, ObligationFieldCreateStatusCode) {
+func CreateObClassification(obClassification *models.ObligationClassification, userId uuid.UUID) (ObligationFieldCreateStatusCode, error) {
 	if err := validations.Validate.Struct(obClassification); err != nil {
-		return err, VALIDATION_FAILED
+		return VALIDATION_FAILED, err
 	}
 
 	var status ObligationFieldCreateStatusCode
@@ -538,12 +538,12 @@ func CreateObClassification(obClassification *models.ObligationClassification, u
 		return nil
 	})
 
-	return err, status
+	return status, err
 }
 
-func CreateObCategory(obCategory *models.ObligationCategory, userId uuid.UUID) (error, ObligationFieldCreateStatusCode) {
+func CreateObCategory(obCategory *models.ObligationCategory, userId uuid.UUID) (ObligationFieldCreateStatusCode, error) {
 	if err := validations.Validate.Struct(obCategory); err != nil {
-		return err, VALIDATION_FAILED
+		return VALIDATION_FAILED, err
 	}
 
 	var status ObligationFieldCreateStatusCode
@@ -573,7 +573,7 @@ func CreateObCategory(obCategory *models.ObligationCategory, userId uuid.UUID) (
 		return nil
 	})
 
-	return err, status
+	return status, err
 }
 
 // Populatedb populates the database with license data from a JSON file.
@@ -614,7 +614,7 @@ func Populatedb(datafile string) {
 	}
 
 	for _, obType := range DEFAULT_OBLIGATION_TYPES {
-		err, status := CreateObType(obType, user.Id)
+		status, err := CreateObType(obType, user.Id)
 
 		if status == CREATED || status == CONFLICT {
 			green := "\033[32m"
@@ -635,7 +635,7 @@ func Populatedb(datafile string) {
 	}
 
 	for _, obClassification := range DEFAULT_OBLIGATION_CLASSIFICATIONS {
-		err, status := CreateObClassification(obClassification, user.Id)
+		status, err := CreateObClassification(obClassification, user.Id)
 
 		if status == CREATED || status == CONFLICT {
 			green := "\033[32m"
@@ -658,7 +658,7 @@ func Populatedb(datafile string) {
 	}
 
 	for _, obCategory := range DEFAULT_OBLIGATION_CATEGORIES {
-		err, status := CreateObCategory(obCategory, user.Id)
+		status, err := CreateObCategory(obCategory, user.Id)
 
 		if status == CREATED || status == CONFLICT {
 			green := "\033[32m"

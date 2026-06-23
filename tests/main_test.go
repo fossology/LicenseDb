@@ -68,7 +68,9 @@ func TestMain(m *testing.M) {
 
 	if db.DB != nil {
 		sqlDB, _ := db.DB.DB()
-		sqlDB.Close()
+		if err := sqlDB.Close(); err != nil {
+			logger.LogError("Failed to close db connection", zap.Error(err))
+		}
 	}
 
 	dropTestDB(user, password, port, dbhost, dbname) // drop the test db
@@ -110,7 +112,11 @@ func createTestDB(user, password, port, host, dbname string) {
 	if err != nil {
 		logger.LogFatal("Failed to connect to postgres", zap.Error(err))
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logger.LogError("Failed to close postgres connection", zap.Error(err))
+		}
+	}()
 
 	_, err = conn.Exec("CREATE DATABASE " + dbname)
 	if err != nil && !isAlreadyExistsError(err) {
@@ -192,7 +198,11 @@ func dropTestDB(user, password, port, host, dbname string) {
 		logger.LogError("Error opening connection to drop DB", zap.Error(err))
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logger.LogError("Error closing connection after dropping DB", zap.Error(err))
+		}
+	}()
 
 	_, _ = conn.Exec(fmt.Sprintf(`
 		SELECT pg_terminate_backend(pid)
