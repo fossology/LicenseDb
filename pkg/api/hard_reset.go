@@ -78,7 +78,7 @@ func HardResetDatabase(c *gin.Context) {
 	}
 
 	for _, obligationType := range hardResetDefaultObligationTypes {
-		_, status := utils.CreateObType(&models.ObligationType{Type: obligationType}, userId)
+		status, _ := utils.CreateObType(&models.ObligationType{Type: obligationType}, userId)
 		if status != utils.CREATED && status != utils.CONFLICT {
 			c.JSON(http.StatusInternalServerError, models.LicenseError{
 				Status:    http.StatusInternalServerError,
@@ -92,7 +92,7 @@ func HardResetDatabase(c *gin.Context) {
 	}
 
 	for _, obligationClassification := range hardResetDefaultObligationClassifications {
-		_, status := utils.CreateObClassification(&models.ObligationClassification{
+		status, _ := utils.CreateObClassification(&models.ObligationClassification{
 			Classification: obligationClassification.Classification,
 			Color:          obligationClassification.Color,
 		}, userId)
@@ -109,7 +109,7 @@ func HardResetDatabase(c *gin.Context) {
 	}
 
 	for _, obligationCategory := range hardResetDefaultObligationCategories {
-		_, status := utils.CreateObCategory(&models.ObligationCategory{Category: obligationCategory}, userId)
+		status, _ := utils.CreateObCategory(&models.ObligationCategory{Category: obligationCategory}, userId)
 		if status != utils.CREATED && status != utils.CONFLICT {
 			c.JSON(http.StatusInternalServerError, models.LicenseError{
 				Status:    http.StatusInternalServerError,
