@@ -23,15 +23,15 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: '1.25'
         check-latest: true
         cache: true
 
     - name: Code Generation
       run: cp external_ref_fields.example.yaml external_ref_fields.yaml && go generate ./...
 
-    - name: lint
-      uses: golangci/golangci-lint-action@v6
+    - name: Lint
+      uses: golangci/golangci-lint-action@v8
       with:
-          version: v1.64.8
+        version: latest
 
