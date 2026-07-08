@@ -1897,7 +1897,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateDeleteOidcClientDTO"
+                            "$ref": "#/definitions/models.CreateOidcClientDTO"
                         }
                     }
                 ],
@@ -1953,7 +1953,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateDeleteOidcClientDTO"
+                            "$ref": "#/definitions/models.DeleteOidcClientDTO"
                         }
                     }
                 ],
@@ -2571,7 +2571,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateDeleteOidcClientDTO": {
+        "models.CreateOidcClientDTO": {
             "type": "object",
             "required": [
                 "clientId"
@@ -2580,6 +2580,14 @@ const docTemplate = `{
                 "clientId": {
                     "type": "string",
                     "example": "qwerty"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Client used by CI pipeline to authenticate with LicenseDb"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "FOSSology Integration Client"
                 }
             }
         },
@@ -2625,6 +2633,18 @@ const docTemplate = `{
                 "status": {
                     "type": "integer",
                     "example": 200
+                }
+            }
+        },
+        "models.DeleteOidcClientDTO": {
+            "type": "object",
+            "required": [
+                "clientId"
+            ],
+            "properties": {
+                "clientId": {
+                    "type": "string",
+                    "example": "qwerty"
                 }
             }
         },
@@ -3327,9 +3347,17 @@ const docTemplate = `{
                     "type": "string",
                     "example": "qwerty"
                 },
+                "description": {
+                    "type": "string",
+                    "example": "Client used by CI pipeline to authenticate with LicenseDb"
+                },
                 "id": {
                     "type": "string",
                     "example": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "FOSSology Integration Client"
                 }
             }
         },

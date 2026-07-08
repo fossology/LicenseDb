@@ -38,8 +38,10 @@ func TestGetUserOidcClients(t *testing.T) {
 
 func TestAddOidcClient(t *testing.T) {
 	t.Run("addOidcClientSuccess", func(t *testing.T) {
-		oidcClient := models.CreateDeleteOidcClientDTO{
-			ClientId: "test-client-id-1",
+		oidcClient := models.CreateOidcClientDTO{
+			ClientId:    "test-client-id-1",
+			Name:        "Test Client One",
+			Description: "OIDC client for testing add endpoint",
 		}
 
 		w := makeRequest("POST", "/oidcClients", oidcClient, true)
@@ -53,12 +55,16 @@ func TestAddOidcClient(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.Status)
 		if len(res.Data) > 0 {
 			assert.Equal(t, oidcClient.ClientId, res.Data[0].ClientId)
+			assert.Equal(t, oidcClient.Name, res.Data[0].Name)
+			assert.Equal(t, oidcClient.Description, res.Data[0].Description)
 		}
 	})
 
 	t.Run("addDuplicateOidcClient", func(t *testing.T) {
-		oidcClient := models.CreateDeleteOidcClientDTO{
-			ClientId: "test-client-id-2",
+		oidcClient := models.CreateOidcClientDTO{
+			ClientId:    "test-client-id-2",
+			Name:        "Test Client Two",
+			Description: "OIDC client for duplicate test",
 		}
 
 		w1 := makeRequest("POST", "/oidcClients", oidcClient, true)
@@ -74,8 +80,10 @@ func TestAddOidcClient(t *testing.T) {
 	})
 
 	t.Run("unauthorized", func(t *testing.T) {
-		oidcClient := models.CreateDeleteOidcClientDTO{
-			ClientId: "test-client-id-3",
+		oidcClient := models.CreateOidcClientDTO{
+			ClientId:    "test-client-id-3",
+			Name:        "Test Client Three",
+			Description: "OIDC client for unauthorized test",
 		}
 		w := makeRequest("POST", "/oidcClients", oidcClient, false)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -83,19 +91,24 @@ func TestAddOidcClient(t *testing.T) {
 }
 
 func TestRevokeClient(t *testing.T) {
-	oidcClient := models.CreateDeleteOidcClientDTO{
-		ClientId: "test-revoke-client",
+	createOidcClient := models.CreateOidcClientDTO{
+		ClientId:    "test-revoke-client",
+		Name:        "Test Revoke Client",
+		Description: "OIDC client for revoke test",
 	}
-	addW := makeRequest("POST", "/oidcClients", oidcClient, true)
+	deleteOidcClient := models.DeleteOidcClientDTO{
+		ClientId: createOidcClient.ClientId,
+	}
+	addW := makeRequest("POST", "/oidcClients", createOidcClient, true)
 	assert.Equal(t, http.StatusCreated, addW.Code)
 
 	t.Run("revokeClientSuccess", func(t *testing.T) {
-		w := makeRequest("DELETE", "/oidcClients", oidcClient, true)
+		w := makeRequest("DELETE", "/oidcClients", deleteOidcClient, true)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
 
 	t.Run("revokeNonExistingClient", func(t *testing.T) {
-		nonExistingClient := models.CreateDeleteOidcClientDTO{
+		nonExistingClient := models.DeleteOidcClientDTO{
 			ClientId: "non-existing-client",
 		}
 		w := makeRequest("DELETE", "/oidcClients", nonExistingClient, true)
@@ -108,7 +121,7 @@ func TestRevokeClient(t *testing.T) {
 	})
 
 	t.Run("unauthorized", func(t *testing.T) {
-		w := makeRequest("DELETE", "/oidcClients", oidcClient, false)
+		w := makeRequest("DELETE", "/oidcClients", deleteOidcClient, false)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }
