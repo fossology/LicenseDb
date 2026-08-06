@@ -336,7 +336,7 @@
                         "{}": []
                     }
                 ],
-                "description": "Filter licenses based on different parameters",
+                "description": "Filter licenses based on different parameters. The `search` parameter does a fuzzy match against the spdx_id, fullname, shortname and text fields, with results ranked so spdx_id matches come before fullname matches, which come before shortname matches, which come before text matches.",
                 "consumes": [
                     "application/json"
                 ],
@@ -371,6 +371,12 @@
                         "type": "boolean",
                         "description": "Copyleft flag status of license",
                         "name": "copyleft",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fuzzy search text matched against spdx_id, fullname, shortname and text fields (ranked spdx_id \u003e fullname \u003e shortname \u003e text)",
+                        "name": "search",
                         "in": "query"
                     },
                     {
@@ -845,7 +851,7 @@
                         "{}": []
                     }
                 ],
-                "description": "Get all active obligations from the service",
+                "description": "Get all active obligations from the service. The `search` parameter does a fuzzy match against the topic and text fields, with results ranked so topic matches come before text matches.",
                 "consumes": [
                     "application/json"
                 ],
@@ -864,6 +870,12 @@
                         "name": "active",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fuzzy search text matched against topic and text fields (ranked topic \u003e text)",
+                        "name": "search",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -1997,59 +2009,6 @@
                     },
                     "401": {
                         "description": "Invalid or expired refresh token",
-                        "schema": {
-                            "$ref": "#/definitions/models.LicenseError"
-                        }
-                    }
-                }
-            }
-        },
-        "/search": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": [],
-                        "{}": []
-                    }
-                ],
-                "description": "Search licenses on different filters and algorithms",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Licenses"
-                ],
-                "summary": "Search licenses",
-                "operationId": "SearchInLicense",
-                "parameters": [
-                    {
-                        "description": "Search criteria",
-                        "name": "search",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.SearchLicense"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Licenses matched",
-                        "schema": {
-                            "$ref": "#/definitions/models.LicenseResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/models.LicenseError"
-                        }
-                    },
-                    "404": {
-                        "description": "Search algorithm doesn't exist",
                         "schema": {
                             "$ref": "#/definitions/models.LicenseError"
                         }
@@ -3439,30 +3398,6 @@
                 "risk": {
                     "type": "integer",
                     "example": 2
-                }
-            }
-        },
-        "models.SearchLicense": {
-            "type": "object",
-            "required": [
-                "field",
-                "search_term"
-            ],
-            "properties": {
-                "field": {
-                    "type": "string",
-                    "example": "text"
-                },
-                "search": {
-                    "type": "string",
-                    "enum": [
-                        "fuzzy",
-                        "full_text_search"
-                    ]
-                },
-                "search_term": {
-                    "type": "string",
-                    "example": "MIT License"
                 }
             }
         },

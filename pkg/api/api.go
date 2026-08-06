@@ -123,10 +123,6 @@ func Router() *gin.Engine {
 				licenses.POST("/similarity", getSimilarLicenses)
 
 			}
-			search := authorizedv1.Group("/search")
-			{
-				search.POST("", SearchInLicense)
-			}
 			users := authorizedv1.Group("/users")
 			{
 				users.GET("", middleware.RoleBasedAccessMiddleware([]string{"ADMIN", "SUPER_ADMIN"}), auth.GetAllUser)
@@ -186,10 +182,6 @@ func Router() *gin.Engine {
 				licenses.GET(":id", GetLicense)
 				licenses.GET("export", ExportLicenses)
 				licenses.GET("/preview", GetAllLicensePreviews)
-			}
-			search := unAuthorizedv1.Group("/search")
-			{
-				search.POST("", SearchInLicense)
 			}
 			obligations := unAuthorizedv1.Group("/obligations")
 			{

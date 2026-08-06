@@ -167,13 +167,6 @@ type UserResponse struct {
 	Meta   *PaginationMeta `json:"paginationmeta"`
 }
 
-// SearchLicense struct represents the input needed to search in a license.
-type SearchLicense struct {
-	Field      string `json:"field" binding:"required" example:"text"`
-	SearchTerm string `json:"search_term" binding:"required" example:"MIT License"`
-	Search     string `json:"search" enums:"fuzzy,full_text_search"`
-}
-
 // Audit struct represents an audit entity with certain attributes and properties
 // It has user id as a foreign key
 type Audit struct {

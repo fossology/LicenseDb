@@ -58,6 +58,92 @@ func TestGetAllObligation(t *testing.T) {
 		}
 		assert.Equal(t, http.StatusOK, res.Status)
 	})
+
+	t.Run("searchRanksTopicAboveText", func(t *testing.T) {
+		topicMatch := models.ObligationCreateDTO{
+			Topic:          "ZZObRankToken Topic",
+			Type:           "RIGHT",
+			Text:           "text body unrelated to the search token",
+			Classification: "GREEN",
+			Comment:        ptr("search rank test: topic match"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Category:       "GENERAL",
+		}
+		textMatch := models.ObligationCreateDTO{
+			Topic:          "Unrelated Topic Name",
+			Type:           "RIGHT",
+			Text:           "this text body contains ZZObRankToken inside it",
+			Classification: "GREEN",
+			Comment:        ptr("search rank test: text match"),
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+			Category:       "GENERAL",
+		}
+
+		// Create in a shuffled order so a pass here can't be explained by insertion/id order.
+		for _, ob := range []models.ObligationCreateDTO{textMatch, topicMatch} {
+			w := makeRequest("POST", "/obligations", ob, true)
+			assert.Equal(t, http.StatusCreated, w.Code)
+		}
+
+		w := makeRequest("GET", "/obligations?search=ZZObRankToken", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.ObligationResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+
+		topics := make([]string, 0, len(res.Data))
+		for _, o := range res.Data {
+			topics = append(topics, o.Topic)
+		}
+		assert.Equal(t, []string{"ZZObRankToken Topic", "Unrelated Topic Name"}, topics,
+			"topic match should rank above text match")
+	})
+
+	t.Run("searchCombinesWithOtherFiltersUsingAnd", func(t *testing.T) {
+		// The search matches created above are all active, so requiring active=false
+		// alongside the search term must yield no results if search and active are
+		// correctly ANDed (and the OR inside the search clause is parenthesized).
+		w := makeRequest("GET", "/obligations?search=ZZObRankToken&active=false", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.ObligationResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 0, len(res.Data))
+	})
+
+	t.Run("searchWithNoMatches", func(t *testing.T) {
+		w := makeRequest("GET", "/obligations?search=ThisTermShouldNotMatchAnyObligationAtAll", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.ObligationResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 0, len(res.Data))
+	})
+
+	t.Run("searchIsPaginated", func(t *testing.T) {
+		w := makeRequest("GET", "/obligations?search=ZZObRankToken&page=1&limit=1", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.ObligationResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 1, len(res.Data))
+		assert.NotNil(t, res.Meta)
+		assert.Equal(t, 2, res.Meta.ResourceCount)
+	})
 }
 
 func TestGetObligation(t *testing.T) {
