@@ -37,6 +37,7 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Param			active		query		bool	true	"Active obligation only"
+//	@Param			search_term	query		string	false	"Search obligation topic or text"
 //	@Param			page		query		int		false	"Page number"
 //	@Param			limit		query		int		false	"Number of records per page"
 //	@Param			order_by	query		string	false	"Asc or desc ordering"	Enums(asc, desc)	default(asc)
@@ -48,6 +49,7 @@ import (
 func GetAllObligation(c *gin.Context) {
 	var obligations []models.Obligation
 	active := c.Query("active")
+	searchTerm := c.Query("search_term")
 	if active == "" {
 		active = "true"
 	}
@@ -66,6 +68,10 @@ func GetAllObligation(c *gin.Context) {
 	}
 	query := db.DB.Model(&models.Obligation{})
 	query.Where(&models.Obligation{Active: &parsedActive})
+	if searchTerm != "" {
+		searchPattern := "%" + searchTerm + "%"
+		query = query.Where("(topic ILIKE ? OR text ILIKE ?)", searchPattern, searchPattern)
+	}
 
 	_ = utils.PreparePaginateResponse(c, query, &models.ObligationResponse{})
 

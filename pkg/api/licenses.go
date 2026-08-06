@@ -40,6 +40,7 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Param			spdxid		query		string					false	"SPDX ID of the license"
+//	@Param			search_term	query		string					false	"Search full name, short name, text, or SPDX expression"
 //	@Param			active		query		bool					false	"Active license only"
 //	@Param			osiapproved	query		bool					false	"OSI Approved flag status of license"
 //	@Param			copyleft	query		bool					false	"Copyleft flag status of license"
@@ -54,6 +55,7 @@ import (
 //	@Router			/licenses [get]
 func FilterLicense(c *gin.Context) {
 	SpdxId := c.Query("spdxid")
+	searchTerm := c.Query("search_term")
 	active := c.Query("active")
 	OSIapproved := c.Query("osiapproved")
 	copyleft := c.Query("copyleft")
@@ -105,6 +107,14 @@ func FilterLicense(c *gin.Context) {
 
 	if SpdxId != "" {
 		query = query.Where(models.LicenseDB{SpdxId: &SpdxId})
+	}
+
+	if searchTerm != "" {
+		searchPattern := "%" + searchTerm + "%"
+		query = query.Where(
+			"(rf_fullname ILIKE ? OR rf_shortname ILIKE ? OR rf_text ILIKE ? OR rf_spdx_id ILIKE ?)",
+			searchPattern, searchPattern, searchPattern, searchPattern,
+		)
 	}
 
 	for externalRefKey, externalRefValue := range externalRefData {

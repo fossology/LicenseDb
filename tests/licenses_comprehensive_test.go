@@ -84,6 +84,19 @@ func TestFilterLicense(t *testing.T) {
 		}
 	})
 
+	t.Run("filterWithSearchTerm", func(t *testing.T) {
+		w := makeRequest("GET", "/licenses?search_term=filter%20spdx", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.LicenseResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.NotEmpty(t, res.Data)
+		assert.Equal(t, "TEST-FILTER-SPDX", res.Data[0].Shortname)
+	})
+
 	t.Run("filterWithPagination", func(t *testing.T) {
 		w := makeRequest("GET", "/licenses?page=1&limit=5", nil, true)
 		assert.Equal(t, http.StatusOK, w.Code)
