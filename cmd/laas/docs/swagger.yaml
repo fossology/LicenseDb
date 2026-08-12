@@ -92,10 +92,16 @@ definitions:
         example: 200
         type: integer
     type: object
-  models.CreateDeleteOidcClientDTO:
+  models.CreateOidcClientDTO:
     properties:
       clientId:
         example: qwerty
+        type: string
+      description:
+        example: Client used by CI pipeline to authenticate with LicenseDb
+        type: string
+      name:
+        example: FOSSology Integration Client
         type: string
     required:
     - clientId
@@ -130,6 +136,14 @@ definitions:
       status:
         example: 200
         type: integer
+    type: object
+  models.DeleteOidcClientDTO:
+    properties:
+      clientId:
+        example: qwerty
+        type: string
+    required:
+    - clientId
     type: object
   models.ImportLicensesResponse:
     properties:
@@ -625,8 +639,14 @@ definitions:
       client_id:
         example: qwerty
         type: string
+      description:
+        example: Client used by CI pipeline to authenticate with LicenseDb
+        type: string
       id:
         example: f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+        type: string
+      name:
+        example: FOSSology Integration Client
         type: string
     type: object
   models.OidcClientsResponse:
@@ -2053,7 +2073,7 @@ paths:
         name: oidc_client
         required: true
         schema:
-          $ref: '#/definitions/models.CreateDeleteOidcClientDTO'
+          $ref: '#/definitions/models.DeleteOidcClientDTO'
       produces:
       - application/json
       responses:
@@ -2099,7 +2119,7 @@ paths:
         name: oidc_client
         required: true
         schema:
-          $ref: '#/definitions/models.CreateDeleteOidcClientDTO'
+          $ref: '#/definitions/models.CreateOidcClientDTO'
       produces:
       - application/json
       responses:

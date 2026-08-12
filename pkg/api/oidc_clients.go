@@ -67,7 +67,7 @@ func GetUserOidcClients(c *gin.Context) {
 //	@Tags			OIDC Clients
 //	@Accept			json
 //	@Produce		json
-//	@Param			oidc_client	body		models.CreateDeleteOidcClientDTO	true	"Oidc client to add"
+//	@Param			oidc_client	body		models.CreateOidcClientDTO	true	"Oidc client to add"
 //	@Success		201			{object}	models.OidcClientsResponse
 //	@Failure		400			{object}	models.LicenseError	"invalid json body"
 //	@Failure		409			{object}	models.LicenseError	"oidc client already exists"
@@ -75,7 +75,7 @@ func GetUserOidcClients(c *gin.Context) {
 //	@Security		ApiKeyAuth
 //	@Router			/oidcClients [post]
 func AddOidcClient(c *gin.Context) {
-	var oidcClientDto models.CreateDeleteOidcClientDTO
+	var oidcClientDto models.CreateOidcClientDTO
 	if err := c.ShouldBindJSON(&oidcClientDto); err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
@@ -92,6 +92,12 @@ func AddOidcClient(c *gin.Context) {
 
 	oidcClient := models.OidcClient(oidcClientDto)
 	oidcClient.UserId = userId
+	if oidcClient.Name == "" {
+		oidcClient.Name = oidcClient.ClientId
+	}
+	if oidcClient.Description == "" {
+		oidcClient.Description = "OIDC client for " + oidcClient.ClientId
+	}
 
 	result := db.DB.Where(&models.OidcClient{ClientId: oidcClient.ClientId}).FirstOrCreate(&oidcClient)
 
@@ -138,13 +144,13 @@ func AddOidcClient(c *gin.Context) {
 //	@Tags			OIDC Clients
 //	@Accept			json
 //	@Produce		json
-//	@Param			oidc_client	body	models.CreateDeleteOidcClientDTO	true	"Oidc client to add"
+//	@Param			oidc_client	body	models.DeleteOidcClientDTO	true	"Oidc client to add"
 //	@Success		204
 //	@Failure		404	{object}	models.LicenseError	"Oidc Client not found"
 //	@Security		ApiKeyAuth
 //	@Router			/oidcClients [delete]
 func RevokeClient(c *gin.Context) {
-	var deleteOidcClientDto models.CreateDeleteOidcClientDTO
+	var deleteOidcClientDto models.DeleteOidcClientDTO
 	if err := c.ShouldBindJSON(&deleteOidcClientDto); err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusBadRequest,
