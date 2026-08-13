@@ -58,6 +58,31 @@ func TestGetAllObligation(t *testing.T) {
 		}
 		assert.Equal(t, http.StatusOK, res.Status)
 	})
+
+	t.Run("searchObligationsByTopic", func(t *testing.T) {
+		dto := models.ObligationCreateDTO{
+			Topic:          "searchable obligation",
+			Type:           "RIGHT",
+			Text:           "searchable obligation text",
+			Classification: "GREEN",
+			Category:       "GENERAL",
+			Active:         ptr(true),
+			TextUpdatable:  ptr(false),
+		}
+		createW := makeRequest("POST", "/obligations", dto, true)
+		assert.Equal(t, http.StatusCreated, createW.Code)
+
+		w := makeRequest("GET", "/obligations?search_term=searchable%20obligation", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.ObligationResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.NotEmpty(t, res.Data)
+		assert.Equal(t, dto.Topic, res.Data[0].Topic)
+	})
 }
 
 func TestGetObligation(t *testing.T) {
