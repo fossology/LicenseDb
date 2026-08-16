@@ -11,6 +11,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 	"time"
 
@@ -252,7 +253,7 @@ func (dto *LicenseImportDTO) ConvertToLicenseDB() LicenseDB {
 	bytes, _ := json.Marshal(dto.ExternalRef)
 
 	if err := json.Unmarshal(bytes, &ext); err != nil {
-		panic(err)
+		log.Printf("failed to unmarshal external_ref for license %v: %v", dto.Shortname, err)
 	}
 
 	l.ExternalRef = datatypes.NewJSONType(ext)

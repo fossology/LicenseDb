@@ -672,26 +672,19 @@ func Populatedb(datafile string) {
 	}
 }
 
-// SetSimilarityThreshold parses the env var and sets the threshold in Postgres.
-func SetSimilarityThreshold() {
-	defaultThreshold := 0.7
-	thresholdStr := os.Getenv("SIMILARITY_THRESHOLD")
-
-	threshold := defaultThreshold
-	if thresholdStr != "" {
-		if parsed, err := strconv.ParseFloat(thresholdStr, 64); err == nil {
-			threshold = parsed
-		} else {
-			log.Printf("Invalid SIMILARITY_THRESHOLD '%s', using default %.1f", thresholdStr, defaultThreshold)
-		}
-	} else {
-		log.Printf("SIMILARITY_THRESHOLD not set, using default %.1f", defaultThreshold)
+// GetSimilarityThreshold parses the env var and returns the threshold value.
+func GetSimilarityThreshold() float64 {
+	const defaultThreshold = 0.7
+	thresholdStr := strings.TrimSpace(os.Getenv("SIMILARITY_THRESHOLD"))
+	if thresholdStr == "" {
+		return defaultThreshold
 	}
-
-	query := fmt.Sprintf("SET pg_trgm.similarity_threshold = %f", threshold)
-	if err := db.DB.Exec(query).Error; err != nil {
-		log.Println("Failed to set similarity threshold:", err)
+	parsed, err := strconv.ParseFloat(thresholdStr, 64)
+	if err != nil {
+		log.Printf("Invalid SIMILARITY_THRESHOLD '%s', using default %.1f", thresholdStr, defaultThreshold)
+		return defaultThreshold
 	}
+	return parsed
 }
 
 // GetAuditEntity is an utility function to fetch obligation or license associated with an audit
@@ -792,7 +785,7 @@ func GetKid(token string) (string, error) {
 
 	parts := strings.Split(token, ".")
 
-	decodedBytes, err := base64.StdEncoding.DecodeString(parts[0])
+	decodedBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
 		return "", err
 	}
