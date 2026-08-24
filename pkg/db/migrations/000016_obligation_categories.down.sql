@@ -12,5 +12,9 @@ UPDATE obligations
     );
 ALTER TABLE obligations DROP CONSTRAINT fk_obligation_category;
 ALTER TABLE obligations DROP COLUMN obligation_category_id;
+
+DELETE FROM change_logs WHERE audit_id IN (SELECT id FROM audits WHERE type = 'CATEGORY');
+DELETE FROM audits WHERE type = 'CATEGORY';
+
 DROP TABLE IF EXISTS obligation_categories;
 COMMIT;
