@@ -113,6 +113,108 @@ func TestFilterLicense(t *testing.T) {
 		w := makeRequest("GET", "/licenses?sort_by=invalid_field", nil, true)
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
+
+	t.Run("searchRanksSpdxAboveFullnameAboveShortnameAboveText", func(t *testing.T) {
+		spdxMatch := models.LicenseCreateDTO{
+			Shortname: "ZZRANK-SPDX",
+			Fullname:  "Unrelated Full Name Four",
+			Text:      "text body unrelated to the search token",
+			Notes:     ptr("Test notes"),
+			Source:    ptr("test"),
+			SpdxId:    "LicenseRef-ZZRANKTOKEN",
+			Risk:      ptr(int64(1)),
+		}
+		fullnameMatch := models.LicenseCreateDTO{
+			Shortname: "ZZRANK-FULL",
+			Fullname:  "ZzRankToken Special License",
+			Text:      "text body unrelated to the search token",
+			Notes:     ptr("Test notes"),
+			Source:    ptr("test"),
+			SpdxId:    "LicenseRef-ZZRANK-FULL",
+			Risk:      ptr(int64(1)),
+		}
+		shortnameMatch := models.LicenseCreateDTO{
+			Shortname: "ZzRankToken-Short",
+			Fullname:  "Unrelated Full Name Two",
+			Text:      "text body unrelated to the search token",
+			Notes:     ptr("Test notes"),
+			Source:    ptr("test"),
+			SpdxId:    "LicenseRef-ZZRANK-SHORT",
+			Risk:      ptr(int64(1)),
+		}
+		textMatch := models.LicenseCreateDTO{
+			Shortname: "ZZRANK-TEXT",
+			Fullname:  "Unrelated Full Name Three",
+			Text:      "this text body contains ZzRankToken inside it",
+			Notes:     ptr("Test notes"),
+			Source:    ptr("test"),
+			SpdxId:    "LicenseRef-ZZRANK-TEXT",
+			Risk:      ptr(int64(1)),
+		}
+
+		// Create in a shuffled order so a pass here can't be explained by insertion/id order.
+		for _, lic := range []models.LicenseCreateDTO{textMatch, fullnameMatch, spdxMatch, shortnameMatch} {
+			w := makeRequest("POST", "/licenses", lic, true)
+			assert.Equal(t, http.StatusCreated, w.Code)
+		}
+
+		w := makeRequest("GET", "/licenses?search=ZzRankToken", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.LicenseResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+
+		shortnames := make([]string, 0, len(res.Data))
+		for _, l := range res.Data {
+			shortnames = append(shortnames, l.Shortname)
+		}
+		assert.Equal(t, []string{"ZZRANK-SPDX", "ZZRANK-FULL", "ZzRankToken-Short", "ZZRANK-TEXT"}, shortnames,
+			"spdx_id match should rank above fullname match, above shortname match, above text match")
+	})
+
+	t.Run("searchCombinesWithOtherFiltersUsingAnd", func(t *testing.T) {
+		// The search matches created above are all active, so requiring active=false
+		// alongside the search term must yield no results if search and active are
+		// correctly ANDed (and the OR inside the search clause is parenthesized).
+		w := makeRequest("GET", "/licenses?search=ZzRankToken&active=false", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.LicenseResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 0, len(res.Data))
+	})
+
+	t.Run("searchWithNoMatches", func(t *testing.T) {
+		w := makeRequest("GET", "/licenses?search=ThisTermShouldNotMatchAnyLicenseAtAll", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.LicenseResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 0, len(res.Data))
+	})
+
+	t.Run("searchIsPaginated", func(t *testing.T) {
+		w := makeRequest("GET", "/licenses?search=ZzRankToken&page=1&limit=2", nil, true)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var res models.LicenseResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+			t.Errorf("Error unmarshalling JSON: %v", err)
+			return
+		}
+		assert.Equal(t, 2, len(res.Data))
+		assert.NotNil(t, res.Meta)
+		assert.Equal(t, 4, res.Meta.ResourceCount)
+	})
 }
 
 func TestExportLicenses(t *testing.T) {
@@ -496,71 +598,6 @@ func TestImportLicenses(t *testing.T) {
 		}
 		assert.Equal(t, http.StatusOK, res.Status)
 		assert.GreaterOrEqual(t, len(res.Data), 0)
-	})
-}
-
-func TestSearchInLicense(t *testing.T) {
-	t.Run("searchWithFullText", func(t *testing.T) {
-		searchReq := models.SearchLicense{
-			Field:      "shortname",
-			Search:     "full_text_search",
-			SearchTerm: "MIT",
-		}
-
-		w := makeRequest("POST", "/search", searchReq, true)
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var res models.LicenseResponse
-		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
-			t.Errorf("Error unmarshalling JSON: %v", err)
-			return
-		}
-		assert.Equal(t, http.StatusOK, res.Status)
-	})
-
-	t.Run("searchWithFuzzy", func(t *testing.T) {
-		searchReq := models.SearchLicense{
-			Field:      "fullname",
-			Search:     "fuzzy",
-			SearchTerm: "MIT",
-		}
-
-		w := makeRequest("POST", "/search", searchReq, true)
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var res models.LicenseResponse
-		if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
-			t.Errorf("Error unmarshalling JSON: %v", err)
-			return
-		}
-		assert.Equal(t, http.StatusOK, res.Status)
-	})
-
-	t.Run("searchWithInvalidField", func(t *testing.T) {
-		searchReq := models.SearchLicense{
-			Field:      "invalid_field",
-			Search:     "full_text_search",
-			SearchTerm: "MIT",
-		}
-
-		w := makeRequest("POST", "/search", searchReq, true)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
-
-	t.Run("searchWithInvalidAlgorithm", func(t *testing.T) {
-		searchReq := models.SearchLicense{
-			Field:      "shortname",
-			Search:     "invalid_algorithm",
-			SearchTerm: "MIT",
-		}
-
-		w := makeRequest("POST", "/search", searchReq, true)
-		assert.Equal(t, http.StatusNotFound, w.Code)
-	})
-
-	t.Run("searchWithInvalidJSON", func(t *testing.T) {
-		w := makeRequest("POST", "/search", []byte("invalid json"), true)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 

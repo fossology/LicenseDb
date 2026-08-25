@@ -26,17 +26,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetAllObligation retrieves a list of all obligation records
 //
 //	@Summary		Get all active obligations
-//	@Description	Get all active obligations from the service
+//	@Description	Get all active obligations from the service. The `search` parameter does a fuzzy match against the topic and text fields, with results ranked so topic matches come before text matches.
 //	@Id				GetAllObligation
 //	@Tags			Obligations
 //	@Accept			json
 //	@Produce		json
 //	@Param			active		query		bool	true	"Active obligation only"
+//	@Param			search		query		string	false	"Fuzzy search text matched against topic and text fields (ranked topic > text)"
 //	@Param			page		query		int		false	"Page number"
 //	@Param			limit		query		int		false	"Number of records per page"
 //	@Param			order_by	query		string	false	"Asc or desc ordering"	Enums(asc, desc)	default(asc)
@@ -64,8 +66,16 @@ func GetAllObligation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, er)
 		return
 	}
+	searchTerm := strings.TrimSpace(c.Query("search"))
+
 	query := db.DB.Model(&models.Obligation{})
 	query.Where(&models.Obligation{Active: &parsedActive})
+
+	var likeTerm string
+	if searchTerm != "" {
+		likeTerm = "%" + searchTerm + "%"
+		query.Where("topic ILIKE ? OR text ILIKE ?", likeTerm, likeTerm)
+	}
 
 	_ = utils.PreparePaginateResponse(c, query, &models.ObligationResponse{})
 
@@ -76,7 +86,19 @@ func GetAllObligation(c *gin.Context) {
 		queryOrderString += " desc"
 	}
 
-	query.Order(queryOrderString)
+	if searchTerm != "" {
+		// Rank topic matches above text matches, falling back to the requested
+		// order_by to break ties within the same rank.
+		rankSQL := "CASE " +
+			"WHEN topic ILIKE ? THEN 1 " +
+			"WHEN text ILIKE ? THEN 2 " +
+			"ELSE 3 END, " + queryOrderString
+		query.Order(clause.OrderBy{
+			Expression: gorm.Expr(rankSQL, likeTerm, likeTerm),
+		})
+	} else {
+		query.Order(queryOrderString)
+	}
 
 	if err = query.Joins("Type").Joins("Classification").Joins("Category").Preload("Licenses").Find(&obligations).Error; err != nil {
 		er := models.LicenseError{

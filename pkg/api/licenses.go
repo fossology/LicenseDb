@@ -29,12 +29,13 @@ import (
 	"github.com/google/uuid"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // FilterLicense Get licenses from service based on different filters.
 //
 //	@Summary		Filter licenses
-//	@Description	Filter licenses based on different parameters
+//	@Description	Filter licenses based on different parameters. The `search` parameter does a fuzzy match against the spdx_id, fullname, shortname and text fields, with results ranked so spdx_id matches come before fullname matches, which come before shortname matches, which come before text matches.
 //	@Id				FilterLicense
 //	@Tags			Licenses
 //	@Accept			json
@@ -43,6 +44,7 @@ import (
 //	@Param			active		query		bool					false	"Active license only"
 //	@Param			osiapproved	query		bool					false	"OSI Approved flag status of license"
 //	@Param			copyleft	query		bool					false	"Copyleft flag status of license"
+//	@Param			search		query		string					false	"Fuzzy search text matched against spdx_id, fullname, shortname and text fields (ranked spdx_id > fullname > shortname > text)"
 //	@Param			page		query		int						false	"Page number"
 //	@Param			limit		query		int						false	"Limit of responses per page"
 //	@Param			externalRef	query		string					false	"External reference parameters"
@@ -58,6 +60,7 @@ func FilterLicense(c *gin.Context) {
 	OSIapproved := c.Query("osiapproved")
 	copyleft := c.Query("copyleft")
 	externalRef := c.Query("externalRef")
+	searchTerm := strings.TrimSpace(c.Query("search"))
 
 	externalRefData := make(map[string]string)
 
@@ -111,6 +114,15 @@ func FilterLicense(c *gin.Context) {
 		query = query.Where(fmt.Sprintf("external_ref->>'%s' = ?", externalRefKey), externalRefValue)
 	}
 
+	var likeTerm string
+	if searchTerm != "" {
+		likeTerm = "%" + searchTerm + "%"
+		query = query.Where(
+			"rf_spdx_id ILIKE ? OR rf_fullname ILIKE ? OR rf_shortname ILIKE ? OR rf_text ILIKE ?",
+			likeTerm, likeTerm, likeTerm, likeTerm,
+		)
+	}
+
 	sortBy := c.Query("sort_by")
 	orderBy := c.Query("order_by")
 	queryOrderString := ""
@@ -124,7 +136,22 @@ func FilterLicense(c *gin.Context) {
 		queryOrderString += " desc"
 	}
 
-	query.Order(queryOrderString)
+	if searchTerm != "" {
+		// Rank spdx_id matches above fullname matches, above shortname matches, above
+		// text matches, falling back to the requested sort_by/order_by to break ties
+		// within the same rank.
+		rankSQL := "CASE " +
+			"WHEN rf_spdx_id ILIKE ? THEN 1 " +
+			"WHEN rf_fullname ILIKE ? THEN 2 " +
+			"WHEN rf_shortname ILIKE ? THEN 3 " +
+			"WHEN rf_text ILIKE ? THEN 4 " +
+			"ELSE 5 END, " + queryOrderString
+		query = query.Order(clause.OrderBy{
+			Expression: gorm.Expr(rankSQL, likeTerm, likeTerm, likeTerm, likeTerm),
+		})
+	} else {
+		query = query.Order(queryOrderString)
+	}
 
 	_ = utils.PreparePaginateResponse(c, query, &models.LicenseResponse{})
 
@@ -505,98 +532,6 @@ func UpdateLicense(c *gin.Context) {
 
 		return nil
 	})
-}
-
-// SearchInLicense Search for license data based on user-provided search criteria.
-//
-//	@Summary		Search licenses
-//	@Description	Search licenses on different filters and algorithms
-//	@Id				SearchInLicense
-//	@Tags			Licenses
-//	@Accept			json
-//	@Produce		json
-//	@Param			search	body		models.SearchLicense	true	"Search criteria"
-//	@Success		200		{object}	models.LicenseResponse	"Licenses matched"
-//	@Failure		400		{object}	models.LicenseError		"Invalid request"
-//	@Failure		404		{object}	models.LicenseError		"Search algorithm doesn't exist"
-//	@Security		ApiKeyAuth || {}
-//	@Router			/search [post]
-func SearchInLicense(c *gin.Context) {
-	var input models.SearchLicense
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		er := models.LicenseError{
-			Status:    http.StatusBadRequest,
-			Message:   "invalid json body",
-			Error:     err.Error(),
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		c.JSON(http.StatusBadRequest, er)
-		return
-	}
-
-	input.Field = "rf_" + input.Field
-
-	var licenses []models.LicenseDB
-	query := db.DB.Model(&licenses)
-
-	if !db.DB.Migrator().HasColumn(&models.LicenseDB{}, input.Field) {
-		er := models.LicenseError{
-			Status:    http.StatusBadRequest,
-			Message:   fmt.Sprintf("invalid field name '%s'", input.Field),
-			Error:     "field does not exist in the database",
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		c.JSON(http.StatusBadRequest, er)
-		return
-	}
-
-	switch input.Search {
-	case "fuzzy":
-		query = query.Where(fmt.Sprintf("%s ILIKE ?", input.Field),
-			fmt.Sprintf("%%%s%%", input.SearchTerm))
-	case "", "full_text_search":
-		query = query.Where(input.Field+" @@ plainto_tsquery(?)", input.SearchTerm)
-	default:
-		er := models.LicenseError{
-			Status:    http.StatusNotFound,
-			Message:   "search algorithm doesn't exist",
-			Error:     "search algorithm with such name doesn't exists",
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		c.JSON(http.StatusNotFound, er)
-		return
-	}
-	err := query.Preload("User").Preload("Obligations").Find(&licenses).Error
-	if err != nil {
-		er := models.LicenseError{
-			Status:    http.StatusBadRequest,
-			Message:   "Query failed because of error",
-			Error:     err.Error(),
-			Path:      c.Request.URL.Path,
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		c.JSON(http.StatusBadRequest, er)
-		return
-	}
-
-	licensedtos := []models.LicenseResponseDTO{}
-
-	for _, l := range licenses {
-		licensedtos = append(licensedtos, l.ConvertToLicenseResponseDTO())
-	}
-
-	res := models.LicenseResponse{
-		Data:   licensedtos,
-		Status: http.StatusOK,
-		Meta: &models.PaginationMeta{
-			ResourceCount: len(licenses),
-		},
-	}
-	c.JSON(http.StatusOK, res)
 }
 
 // ImportLicenses creates new licenses records via a json file.
