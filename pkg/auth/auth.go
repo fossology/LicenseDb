@@ -716,15 +716,15 @@ func DeleteUser(c *gin.Context) {
 //	@Security		ApiKeyAuth
 //	@Router			/users [get]
 func GetAllUser(c *gin.Context) {
-	active, err := strconv.ParseBool(c.Query("active"))
-	if err != nil {
-		active = false
-	}
-
 	var users []models.User
 	query := db.DB.Model(&models.User{})
 	_ = utils.PreparePaginateResponse(c, query, &models.UserResponse{})
-	if err := query.Where(&models.User{Active: &active}).Find(&users).Error; err != nil {
+	if activeStr := c.Query("active"); activeStr != "" {
+		if active, err := strconv.ParseBool(activeStr); err == nil {
+			query = query.Where(&models.User{Active: &active})
+		}
+	}
+	if err := query.Find(&users).Error; err != nil {
 		er := models.LicenseError{
 			Status:    http.StatusNotFound,
 			Message:   "Users not found",

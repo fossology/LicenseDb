@@ -18,7 +18,7 @@ services:
       PORT: 8080
       TOKEN_HOUR_LIFESPAN: 1
       REFRESH_TOKEN_HOUR_LIFESPAN: 720
-      READ_API_AUTHENTICATION_ENABLED: false
+      READ_API_AUTHENTICATION_ENABLED: "false"
     ports:
       - "8080:8080"
     depends_on:
